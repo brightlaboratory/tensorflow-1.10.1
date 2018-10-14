@@ -26,10 +26,10 @@
 #include "tensorflow/core/util/device_name_utils.h"
 
 namespace tensorflow {
-void PrintStats(Graph* graph) {
+void PrintStats(Graph* g) {
   for (const Node* dst : g->op_nodes()) {
-    VLOG(1) << "Name: " << dst->name << " num_inputs: " << dst->num_inputs
-            << " num_outputs: " << dst->num_outputs << "\n";
+    VLOG(1) << "Name: " << dst->name() << " num_inputs: " << dst->num_inputs()
+            << " num_outputs: " << dst->num_outputs() << "\n";
   }
 }
 }  // namespace tensorflow
