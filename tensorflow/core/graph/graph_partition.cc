@@ -937,6 +937,12 @@ void SetIncarnation(const PartitionOptions& opts, GraphDef* gdef) {
 
 Status Partition(const PartitionOptions& opts, Graph* g,
                  std::unordered_map<string, GraphDef>* partitions) {
+
+	// TODO: Experimental call begins
+#include "tensorflow/core/graph/graph_auto_partition.h"
+  PrintStats(g);
+  // TODO: Experimental call ends
+
   Status status;
   partitions->clear();
 
