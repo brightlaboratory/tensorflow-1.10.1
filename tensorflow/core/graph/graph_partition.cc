@@ -38,6 +38,7 @@ limitations under the License.
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow/core/util/device_name_utils.h"
+#include "tensorflow/core/graph/graph_auto_partition.h"
 
 namespace tensorflow {
 
