@@ -28,7 +28,7 @@
 namespace tensorflow {
 void PrintStats(Graph* g) {
   for (const Node* dst : g->op_nodes()) {
-    VLOG(1) << "Name: " << dst->name() << " num_inputs: " << dst->num_inputs()
+    VLOG(0) << "Name: " << dst->name() << " num_inputs: " << dst->num_inputs()
             << " num_outputs: " << dst->num_outputs() << "\n";
   }
 }
