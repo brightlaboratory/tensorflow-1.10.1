@@ -153,6 +153,27 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "placement_optimizer",
+    srcs = ["placement_optimizer.cc"],
+    hdrs = [
+        "placement_optimizer.h",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":graph_optimizer",
+        "//tensorflow/core:core_cpu_base",
+        "//tensorflow/core:framework",
+        "//tensorflow/core:lib",
+        "//tensorflow/core:lib_internal",
+        "//tensorflow/core:protos_all_cc",
+        "//tensorflow/core/grappler:grappler_item",
+        "//tensorflow/core/grappler:op_types",
+        "//tensorflow/core/grappler:utils",
+        "//tensorflow/core/grappler/utils:functions",
+    ],
+)
+
 tf_cuda_cc_test(
     name = "function_optimizer_test",
     srcs = ["function_optimizer_test.cc"],

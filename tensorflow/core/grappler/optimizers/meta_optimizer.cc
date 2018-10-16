@@ -24,6 +24,7 @@ limitations under the License.
 #include "tensorflow/core/grappler/optimizers/debug_stripper.h"
 #include "tensorflow/core/grappler/optimizers/dependency_optimizer.h"
 #include "tensorflow/core/grappler/optimizers/function_optimizer.h"
+#include "tensorflow/core/grappler/optimizers/placement_optimizer.h"
 #include "tensorflow/core/grappler/optimizers/layout_optimizer.h"
 #include "tensorflow/core/grappler/optimizers/loop_optimizer.h"
 #include "tensorflow/core/grappler/optimizers/memory_optimizer.h"
@@ -80,6 +81,7 @@ std::unique_ptr<GraphOptimizer> MetaOptimizer::MakeNewOptimizer(
     const string& optimizer) const {
   MK_OPT("pruning", new ModelPruner());
   MK_OPT("function", new FunctionOptimizer(cfg_.function_optimization()));
+  MK_OPT("placement", new PlacementOptimizer(cfg_.placement_optimization()));
   MK_OPT("constfold", new ConstantFolding(cpu_device_));
   MK_OPT("shape", new ShapeOptimizer());
   MK_OPT("remap", new Remapper(cfg_.remapping()));
@@ -107,6 +109,10 @@ Status MetaOptimizer::InitializeOptimizers(
   if (cfg_.function_optimization() != RewriterConfig::OFF) {
     optimizers->emplace_back(
         new FunctionOptimizer(cfg_.function_optimization()));
+  }
+  if (cfg_.placement_optimization() != RewriterConfig::OFF) {
+    optimizers->emplace_back(
+        new PlacementOptimizer(cfg_.function_optimization()));
   }
   if (cfg_.debug_stripper() == RewriterConfig::ON) {
     optimizers->emplace_back(new DebugStripper());

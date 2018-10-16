@@ -63,6 +63,7 @@ void Cluster::DisableOptimizer(bool disable) {
     rewriter_config->set_layout_optimizer(RewriterConfig::OFF);
     rewriter_config->set_disable_model_pruning(true);
     rewriter_config->set_function_optimization(RewriterConfig::OFF);
+    rewriter_config->set_placement_optimization(RewriterConfig::OFF);
     rewriter_config->set_arithmetic_optimization(RewriterConfig::OFF);
     rewriter_config->set_loop_optimization(RewriterConfig::OFF);
     rewriter_config->set_dependency_optimization(RewriterConfig::OFF);

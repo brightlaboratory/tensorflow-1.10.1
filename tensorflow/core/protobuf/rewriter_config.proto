@@ -75,6 +75,8 @@ message RewriterConfig {
   // Try to allocate some independent Op outputs contiguously in order to
   // merge or eliminate downstream Ops (off by default).
   Toggle scoped_allocator_optimization = 15;
+  // Placement optimization (default is ON)
+  Toggle placement_optimization = 16;
 
   // Controls how many times we run the optimizers in meta optimizer (default
   // is once).
