@@ -25,7 +25,7 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
   Costs summary;
   Status predictStatus = estimator.PredictCosts(item.graph, &cost_graph, &summary);
 
-  if (predictStatus != Status::OK) {
+  if (predictStatus != Status::OK()) {
     return predictStatus;
   }
 
