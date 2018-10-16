@@ -535,6 +535,7 @@ cc_library(
         ":debug_stripper",
         ":dependency_optimizer",
         ":function_optimizer",
+		":placement_optimizer",
         ":graph_optimizer",
         ":layout_optimizer",
         ":loop_optimizer",
