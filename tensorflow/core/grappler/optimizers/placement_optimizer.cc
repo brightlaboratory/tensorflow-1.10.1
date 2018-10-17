@@ -35,7 +35,7 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
   std::unordered_map<string, CostGraphDef::Node*> name_to_cost;
 
   for (int i = 0; i < cost_graph.node_size(); i++) {
-    const CostGraphDef::Node& cnode = cost_graph.node(i);
+    CostGraphDef::Node& cnode = cost_graph.node(i);
     name_to_cost[cnode.name()] = &cnode;
   }
 
@@ -58,7 +58,7 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
               << " compute_time: " << cost_node->compute_time()
               << " compute_cost: " << cost_node->compute_cost() << "\n";
     } else {
-      VLOG(0) << "Op: " << node.name() << " has no cost estimate\n"
+      VLOG(0) << "Op: " << node.name() << " has no cost estimate\n";
     }
   }
 
