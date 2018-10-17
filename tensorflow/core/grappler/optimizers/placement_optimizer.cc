@@ -23,13 +23,45 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
 
   CostGraphDef cost_graph;
   Costs summary;
-  Status predictStatus = estimator.PredictCosts(item.graph, &cost_graph, &summary);
+  Status predictStatus =
+      estimator.PredictCosts(item.graph, &cost_graph, &summary);
 
   if (predictStatus != Status::OK()) {
     return predictStatus;
   }
 
   VLOG(0) << "summary.execution_time: " << summary.execution_time << "\n";
+
+  std::unordered_map<string, CostGraphDef::Node*> name_to_cost;
+  if (cost_graph) {
+    for (auto& node : *cost_graph->mutable_node()) {
+      name_to_cost[node.name()] = &node;
+    }
+  }
+
+  GraphDef& graph_def = item.graph;
+  for (int i = 0; i < graph_def.node_size(); i++) {
+    const NodeDef& node = graph_def.node(i);
+
+    auto it = name_to_cost.find(node->name());
+    CostGraphDef::Node* cost_node;
+    if (it != name_to_cost.end()) {
+      cost_node = it->second;
+    } else {
+      cost_node = NULL;
+    }
+
+    if (cost_node) {
+      VLOG(0) << "Op: " << node->name()
+              << " max_memory_size: " << cost_node->get_max_memory_size()
+              << " memory_time: " << cost_node->get_memory_time()
+              << " compute_time: " << cost_node->get_compute_time()
+              << " compute_cost: " << cost_node->get_compute_cost() << "\n";
+    } else {
+      VLOG(0) << "Op: " << node->name() << " has no cost estimate\n"
+    }
+  }
+
   return Status::OK();
 }
 

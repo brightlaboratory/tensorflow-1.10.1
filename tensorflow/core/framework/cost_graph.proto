@@ -48,6 +48,9 @@ message CostGraphDef {
     // Persistent memory used by this node.
     int64 persistent_memory_size = 12;
 
+	// Maximum memory used by this node.
+	int64 max_memory_size = 13;
+
     int64 host_temp_memory_size = 10 [deprecated = true];
     int64 device_temp_memory_size = 11 [deprecated = true];
     int64 device_persistent_memory_size = 16 [deprecated = true];
