@@ -38,7 +38,7 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
     name_to_cost[node.name()] = &node;
   }
 
-  GraphDef& graph_def = item.graph;
+  const GraphDef& graph_def = item.graph;
   for (int i = 0; i < graph_def.node_size(); i++) {
     const NodeDef& node = graph_def.node(i);
 
@@ -52,10 +52,10 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
 
     if (cost_node) {
       VLOG(0) << "Op: " << node->name()
-              << " max_memory_size: " << cost_node->get_max_memory_size()
-              << " memory_time: " << cost_node->get_memory_time()
-              << " compute_time: " << cost_node->get_compute_time()
-              << " compute_cost: " << cost_node->get_compute_cost() << "\n";
+              << " max_memory_size: " << cost_node->max_memory_size()
+              << " memory_time: " << cost_node->memory_time()
+              << " compute_time: " << cost_node->compute_time()
+              << " compute_cost: " << cost_node->compute_cost() << "\n";
     } else {
       VLOG(0) << "Op: " << node->name() << " has no cost estimate\n"
     }
