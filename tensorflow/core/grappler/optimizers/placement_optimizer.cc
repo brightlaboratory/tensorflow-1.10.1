@@ -44,7 +44,7 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
     const NodeDef& node = graph_def.node(i);
 
     auto it = name_to_cost.find(node.name());
-    CostGraphDef::Node* cost_node;
+    const CostGraphDef::Node* cost_node;
     if (it != name_to_cost.end()) {
       cost_node = it->second;
     } else {
