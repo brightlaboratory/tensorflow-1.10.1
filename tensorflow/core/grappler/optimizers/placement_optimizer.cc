@@ -37,7 +37,7 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
 
   VLOG(0) << "summary.execution_time: " << summary.execution_time << "\n";
 
-  if (summary.execution_time >= MIN_EXECUTION_TIME) {
+  if (summary.execution_time >= Duration(MIN_EXECUTION_TIME)) {
   }
 
   // PrintCostStats(item, cost_graph);
