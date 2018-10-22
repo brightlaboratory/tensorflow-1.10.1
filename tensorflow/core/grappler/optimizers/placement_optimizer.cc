@@ -41,13 +41,12 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
 
   // PrintCostStats(item, cost_graph);
 
-  CreateDefaultPlacement(item.graph);
-  // Output of the function
-  *optimized_graph = item.graph;
+  CreateDefaultPlacement(item.graph, optimzed_graph);
   return Status::OK();
 }
 
-void PlacementOptimizer::CreateDefaultPlacement(const GraphDef& graph_def) {
+void PlacementOptimizer::CreateDefaultPlacement(const GraphDef& graph_def,
+                                                GraphDef* optimized_graph) {
   set<string> devices;
   set<string>::iterator it1;
 
@@ -64,12 +63,18 @@ void PlacementOptimizer::CreateDefaultPlacement(const GraphDef& graph_def) {
   if (devices.size() > 0) {
     string default_device = *devices.begin();
 
-    for (int i = 0; i < graph_def.node_size(); i++) {
-      const NodeDef& node = graph_def.node(i);
-      node.set_device(default_device);
+    for (const NodeDef& node : graph_def.node()) {
+      NodeDef new_node = *optimized_graph->add_node();
+      *new_node = node;
+      new_node.set_device(default_device);
     }
 
+    *optimized_graph->mutable_versions() = graph_def.versions();
+
     VLOG(0) << "All ops mapped to: " << default_device << "\n";
+  } else {
+    *optimized_graph = graph_def;
+    VLOG(0) << "The original graph is unmodified\n";
   }
 }
 
