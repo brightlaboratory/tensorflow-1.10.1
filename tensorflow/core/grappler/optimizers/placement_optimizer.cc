@@ -66,7 +66,7 @@ void PlacementOptimizer::CreateDefaultPlacement(const GraphDef& graph_def,
     for (const NodeDef& node : graph_def.node()) {
       NodeDef* new_node = optimized_graph->add_node();
       *new_node = node;
-      new_node.set_device(default_device);
+      new_node->set_device(default_device);
     }
 
     *optimized_graph->mutable_versions() = graph_def.versions();
