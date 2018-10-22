@@ -1,10 +1,12 @@
 
 #include "tensorflow/core/grappler/optimizers/placement_optimizer.h"
 
+#include <set>
 #include "tensorflow/cc/ops/standard_ops.h"
 #include "tensorflow/core/framework/cost_graph.pb.h"
 #include "tensorflow/core/grappler/clusters/virtual_cluster.h"
 #include "tensorflow/core/grappler/costs/analytical_cost_estimator.h"
+using namespace std;
 
 namespace tensorflow {
 namespace grappler {
@@ -14,9 +16,6 @@ namespace grappler {
 Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
                                     GraphDef* optimized_graph) {
   VLOG(0) << "Optimize Grappler item: id=" << item.id;
-  // Output of the function
-  *optimized_graph = item.graph;
-
   PrintDeviceStats(cluster);
 
   AnalyticalCostEstimator estimator(cluster, true);
@@ -41,7 +40,37 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
   }
 
   // PrintCostStats(item, cost_graph);
+
+  CreateDefaultPlacement(item.graph);
+  // Output of the function
+  *optimized_graph = item.graph;
   return Status::OK();
+}
+
+void PlacementOptimizer::CreateDefaultPlacement(const GraphDef& graph_def) {
+  set<string> devices;
+  set<string>::iterator it1;
+
+  for (int i = 0; i < graph_def.node_size(); i++) {
+    const NodeDef& node = graph_def.node(i);
+    devices.insert(node.device());
+  }
+
+  VLOG(0) << "number_of_distinct_devices: " << devices.size() << "\n";
+  for (it1 = devices.begin(); it1 != devices.end(); it1++) {
+    VLOG(0) << "mapped_device: " << *it1 << "\n";
+  }
+
+  if (devices.size() > 0) {
+    string default_device = *devices.begin();
+
+    for (int i = 0; i < graph_def.node_size(); i++) {
+      const NodeDef& node = graph_def.node(i);
+      node.set_device(default_device);
+    }
+
+    VLOG(0) << "All ops mapped to: " << default_device << "\n";
+  }
 }
 
 void PlacementOptimizer::PrintDeviceStats(Cluster* cluster) {

@@ -28,6 +28,7 @@ class PlacementOptimizer : public GraphOptimizer {
   RewriterConfig::Toggle opt_level_;
   void PrintDeviceStats(Cluster* cluster);
   void PrintCostStats(const GrapplerItem& item, CostGraphDef& cost_graph);
+  void CreateDefaultPlacement(const GraphDef& graph_def);
 };
 
 }  // end namespace grappler
