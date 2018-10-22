@@ -44,7 +44,7 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
   return Status::OK();
 }
 
-void PrintDeviceStats(Cluster* cluster) {
+void PlacementOptimizer::PrintDeviceStats(Cluster* cluster) {
   const DeviceSet* device_set = cluster->GetDeviceSet();
   const std::vector<Device*>& devices = device_set->devices();
 
@@ -55,7 +55,8 @@ void PrintDeviceStats(Cluster* cluster) {
   }
 }
 
-void PrintCostStats(const GrapplerItem& item, CostGraphDef& cost_graph) {
+void PlacementOptimizer::PrintCostStats(const GrapplerItem& item,
+                                        CostGraphDef& cost_graph) {
   std::unordered_map<string, const CostGraphDef::Node*> name_to_cost;
 
   for (int i = 0; i < cost_graph.node_size(); i++) {
