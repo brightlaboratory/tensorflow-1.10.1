@@ -11,6 +11,15 @@ namespace grappler {
 
 Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
                                     GraphDef* optimized_graph) {
+  const DeviceSet* device_set = cluster->GetDeviceSet();
+  const std::vector<Device*>& devices = device_set->devices();
+
+  VLOG(0) << "Number of devices: " << devices.size();
+  for (int i = 0; i < devices.size(); i++) {
+    VLOG(0) << devices.at(i)->name()
+            << " 's attributes: " << devices.at(i)->DebugString() << "\n";
+  }
+
   VLOG(0) << "Optimize Grappler item: id=" << item.id;
   *optimized_graph = item.graph;
 
@@ -43,6 +52,8 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
   for (int i = 0; i < graph_def.node_size(); i++) {
     const NodeDef& node = graph_def.node(i);
 
+    VLOG(0) << "Node: " << node.name() << "device: " << node.device() << "\n";
+
     auto it = name_to_cost.find(node.name());
     const CostGraphDef::Node* cost_node;
     if (it != name_to_cost.end()) {
@@ -51,15 +62,15 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
       cost_node = NULL;
     }
 
-    if (cost_node) {
-      VLOG(0) << "Op: " << node.name()
-              << " max_memory_size: " << cost_node->max_memory_size()
-              << " memory_time: " << cost_node->memory_time()
-              << " compute_time: " << cost_node->compute_time()
-              << " compute_cost: " << cost_node->compute_cost() << "\n";
-    } else {
-      VLOG(0) << "Op: " << node.name() << " has no cost estimate\n";
-    }
+    // if (cost_node) {
+    //  VLOG(0) << "Op: " << node.name()
+    //          << " max_memory_size: " << cost_node->max_memory_size()
+    //          << " memory_time: " << cost_node->memory_time()
+    //          << " compute_time: " << cost_node->compute_time()
+    //          << " compute_cost: " << cost_node->compute_cost() << "\n";
+    //} else {
+    //  VLOG(0) << "Op: " << node.name() << " has no cost estimate\n";
+    //}
   }
 
   return Status::OK();
