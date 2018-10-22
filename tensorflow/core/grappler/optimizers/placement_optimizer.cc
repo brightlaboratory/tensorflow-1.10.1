@@ -37,11 +37,10 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
   VLOG(0) << "summary.execution_time: " << summary.execution_time << "\n";
 
   if (summary.execution_time >= Costs::Duration(MIN_EXECUTION_TIME)) {
+    CreateDefaultPlacement(item.graph, optimized_graph);
   }
 
   // PrintCostStats(item, cost_graph);
-
-  CreateDefaultPlacement(item.graph, optimized_graph);
   return Status::OK();
 }
 
