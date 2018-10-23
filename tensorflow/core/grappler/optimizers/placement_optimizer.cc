@@ -111,7 +111,7 @@ string PlacementOptimizer::GetDefaultDevice(set<string>& devices,
   set<string>::iterator it1;
   string default_device;
   for (it1 = devices.begin(); it1 != devices.end(); it1++) {
-    if (pinned_devices.find(*it1) != pinned_devices.end()) {
+    if (pinned_devices.find(*it1) == pinned_devices.end()) {
       default_device = *it1;
       break;
     }
@@ -127,6 +127,7 @@ set<string> PlacementOptimizer::GetPinnedDeviceStrings(set<string>& devices) {
 
   for (it1 = devices.begin(); it1 != devices.end(); it1++) {
     if ((*it1).find(pinned_device_string) != std::string::npos) {
+      VLOG(0) << "pinned_device: " << *it1 << "\n";
       pinned_devices.insert(*it1);
     }
   }
