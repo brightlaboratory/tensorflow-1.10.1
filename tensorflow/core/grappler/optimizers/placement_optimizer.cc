@@ -38,6 +38,8 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
 
   if (summary.execution_time >= Costs::Duration(MIN_EXECUTION_TIME)) {
     CreateDefaultPlacement(item.graph, optimized_graph);
+  } else {
+    *optimized_graph = item.graph;
   }
 
   // PrintCostStats(item, cost_graph);
@@ -59,22 +61,69 @@ void PlacementOptimizer::CreateDefaultPlacement(const GraphDef& graph_def,
     VLOG(0) << "mapped_device: " << *it1 << "\n";
   }
 
-  if (devices.size() > 0) {
-    string default_device = *devices.begin();
+  int MIN_DEVICES = 3;  // CPU + at least 2 GPUs
+  if (devices.size() > MIN_DEVICES) {
+    set<string> pinned_devices = GetPinnedDeviceStrings(devices);
+    string default_device = GetDefaultDevice(devices, pinned_devices);
 
-    for (const NodeDef& node : graph_def.node()) {
-      NodeDef* new_node = optimized_graph->add_node();
-      *new_node = node;
-      new_node->set_device(default_device);
+    if (default_device.empty()) {
+      VLOG(0) << "There are no non-CPU devices to map the Ops to\n";
+      *optimized_graph = graph_def;
+    } else {
+      for (const NodeDef& node : graph_def.node()) {
+        NodeDef* new_node = optimized_graph->add_node();
+        *new_node = node;
+
+        if (!new_node->device().empty()) {
+          if (new_node->device() != default_device) {
+            VLOG(0) << "node_remapping of " << new_node->name() << " from "
+                    << new_node->device() << " to " << default_device << "\n";
+            new_node->set_device(default_device);
+          }
+        }
+      }
+
+      *optimized_graph->mutable_versions() = graph_def.versions();
+      VLOG(0) << "All ops mapped to: " << default_device << "\n";
     }
-
-    *optimized_graph->mutable_versions() = graph_def.versions();
-
-    VLOG(0) << "All ops mapped to: " << default_device << "\n";
   } else {
     *optimized_graph = graph_def;
     VLOG(0) << "The original graph is unmodified\n";
   }
+}
+
+set<string> PlacementOptimizer::GetWhitelistedOps() {
+  set<string> ops;
+  ops.insert("MatMul");
+  return ops;
+}
+
+string PlacementOptimizer::GetDefaultDevice(set<string>& devices,
+                                            set<string>& pinned_devices) {
+  set<string>::iterator it1;
+  string default_device;
+  for (it1 = devices.begin(); it1 != devices.end(); it1++) {
+    if (pinned_devices.find(*it1) != pinned_devices.end()) {
+      default_device = *it1;
+      break;
+    }
+  }
+
+  return default_device;
+}
+
+set<string> PlacementOptimizer::GetPinnedDeviceStrings(set<string>& devices) {
+  set<string> pinned_devices;
+  set<string>::iterator it1;
+  string pinned_device_string = "CPU";
+
+  for (it1 = devices.begin(); it1 != devices.end(); it1++) {
+    if ((*it1).find(pinned_device_string) != std::string::npos) {
+      pinned_devices.insert(*it1);
+    }
+  }
+
+  return pinned_devices;
 }
 
 void PlacementOptimizer::PrintDeviceStats(Cluster* cluster) {
