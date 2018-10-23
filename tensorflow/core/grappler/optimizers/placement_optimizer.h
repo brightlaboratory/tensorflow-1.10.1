@@ -4,6 +4,7 @@
 #include "tensorflow/core/framework/cost_graph.pb.h"
 #include "tensorflow/core/grappler/optimizers/graph_optimizer.h"
 #include "tensorflow/core/protobuf/rewriter_config.pb.h"
+using namespace std;
 
 namespace tensorflow {
 namespace grappler {
