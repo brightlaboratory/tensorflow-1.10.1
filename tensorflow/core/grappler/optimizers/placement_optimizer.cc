@@ -37,8 +37,10 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
   VLOG(0) << "summary.execution_time: " << summary.execution_time << "\n";
 
   if (summary.execution_time >= Costs::Duration(MIN_EXECUTION_TIME)) {
+    VLOG(0) << "Invoking CreateDefaultPlacement\n";
     CreateDefaultPlacement(item.graph, optimized_graph);
   } else {
+    VLOG(0) << "Returning the same graph\n";
     *optimized_graph = item.graph;
   }
 
@@ -48,18 +50,7 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
 
 void PlacementOptimizer::CreateDefaultPlacement(const GraphDef& graph_def,
                                                 GraphDef* optimized_graph) {
-  set<string> devices;
-  set<string>::iterator it1;
-
-  for (int i = 0; i < graph_def.node_size(); i++) {
-    const NodeDef& node = graph_def.node(i);
-    devices.insert(node.device());
-  }
-
-  VLOG(0) << "number_of_distinct_devices: " << devices.size() << "\n";
-  for (it1 = devices.begin(); it1 != devices.end(); it1++) {
-    VLOG(0) << "mapped_device: " << *it1 << "\n";
-  }
+  set<string> devices = GetMappedDevices(graph_def);
 
   int MIN_DEVICES = 3;  // CPU + at least 2 GPUs
   if (devices.size() > MIN_DEVICES) {
@@ -90,6 +81,23 @@ void PlacementOptimizer::CreateDefaultPlacement(const GraphDef& graph_def,
     *optimized_graph = graph_def;
     VLOG(0) << "The original graph is unmodified\n";
   }
+}
+
+set<string> PlacementOptimizer::GetMappedDevices(const GraphDef& graph_def) {
+  set<string> devices;
+  set<string>::iterator it1;
+
+  for (int i = 0; i < graph_def.node_size(); i++) {
+    const NodeDef& node = graph_def.node(i);
+    devices.insert(node.device());
+  }
+
+  VLOG(0) << "number_of_distinct_devices: " << devices.size() << "\n";
+  for (it1 = devices.begin(); it1 != devices.end(); it1++) {
+    VLOG(0) << "mapped_device: " << *it1 << "\n";
+  }
+
+  return devices;
 }
 
 set<string> PlacementOptimizer::GetWhitelistedOps() {
