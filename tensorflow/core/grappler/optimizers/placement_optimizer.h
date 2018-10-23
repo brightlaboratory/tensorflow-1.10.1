@@ -33,8 +33,7 @@ class PlacementOptimizer : public GraphOptimizer {
                               GraphDef* optimized_graph);
   set<string> GetWhitelistedOps();
   set<string> GetPinnedDeviceStrings(set<string>& devices);
-  string PlacementOptimizer::GetDefaultDevice(set<string>& devices,
-                                              set<string>& pinned_devices)
+  string GetDefaultDevice(set<string>& devices, set<string>& pinned_devices);
 };
 
 }  // end namespace grappler
