@@ -66,7 +66,9 @@ void PlacementOptimizer::CreateDefaultPlacement(const GraphDef& graph_def,
         *new_node = node;
 
         if (!new_node->device().empty()) {
-          if (new_node->device() != default_device) {
+          if ((pinned_devices.find(new_device->device()) ==
+               pinned_devices.end()) &&
+              (new_node->device() != default_device)) {
             VLOG(0) << "node_remapping of " << new_node->name() << " from "
                     << new_node->device() << " to " << default_device << "\n";
             new_node->set_device(default_device);
