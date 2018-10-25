@@ -17,6 +17,7 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
                                     GraphDef* optimized_graph) {
   VLOG(0) << "Optimize Grappler item: id=" << item.id;
   PrintDeviceStats(cluster);
+  PrintGrapplerItemStats(item);
 
   AnalyticalCostEstimator estimator(cluster, true);
   Status initStatus = estimator.Initialize(item);
@@ -145,6 +146,21 @@ void PlacementOptimizer::PrintDeviceStats(Cluster* cluster) {
   for (int i = 0; i < devices.size(); i++) {
     VLOG(0) << devices.at(i)->name()
             << " 's attributes: " << devices.at(i)->DebugString() << "\n";
+  }
+}
+
+void PlacementOptimizer::PrintGrapplerItemStats(const GrapplerItem& item) {
+  std::vector<std::pair<string, Tensor>>::iterator it1;
+  VLOG(0) << "Feed tensors:\n";
+  for (it1 = item.feed.begin(); it1 != item.feed.end(); it1++) {
+    VLOG(0) << "Name: " << it1->first < < < <
+        " Description: " << it1->second.DebugString();
+  }
+
+  VLOG(0) << "fetch: \n";
+  std::vector<string>::iterator it2;
+  for (it2 = item.fetch.begin(); it2 != item.fetch.end(); it2++) {
+    VLOG(0) << *it2 << "\n";
   }
 }
 
