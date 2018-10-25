@@ -1449,7 +1449,7 @@ Status DirectSession::CreateGraphs(
 
   std::unordered_map<string, GraphDef> partitions;
   VLOG(0) << "Graph to be executed: \n"
-          << &client_graph->graph->ToGraphDefDebug().DebugString();
+          << &client_graph->graph.ToGraphDefDebug().DebugString();
   TF_RETURN_IF_ERROR(Partition(popts, &client_graph->graph, &partitions));
 
   std::vector<string> device_names;
@@ -1460,7 +1460,7 @@ Status DirectSession::CreateGraphs(
 
   // Check for valid partitions.
   for (const auto& partition : partitions) {
-    VLOG(0) << "partition: \n" << partition.second..DebugString();
+    VLOG(0) << "partition: \n" << partition.second.DebugString();
     const string local_partition_name =
         DeviceNameUtils::LocalName(partition.first);
     if (std::count(device_names.begin(), device_names.end(),
