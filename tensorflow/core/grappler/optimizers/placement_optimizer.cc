@@ -106,11 +106,10 @@ set<string> PlacementOptimizer::GetWhitelistedOps() {
 
 string PlacementOptimizer::GetDefaultDevice(const vector<string>& devices,
                                             set<string>& pinned_devices) {
-  vector<string>::iterator it1;
   string default_device;
-  for (it1 = devices.begin(); it1 != devices.end(); it1++) {
-    if (pinned_devices.find(*it1) == pinned_devices.end()) {
-      default_device = *it1;
+  for (const auto& it1 : devices) {
+    if (pinned_devices.find(it1) == pinned_devices.end()) {
+      default_device = it1;
       break;
     }
   }
