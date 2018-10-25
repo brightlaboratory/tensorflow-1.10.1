@@ -1449,7 +1449,7 @@ Status DirectSession::CreateGraphs(
 
   std::unordered_map<string, GraphDef> partitions;
   VLOG(0) << "Graph to be executed: \n"
-          << &client_graph->graph.ToGraphDefDebug().DebugString();
+          << client_graph->graph.ToGraphDefDebug().DebugString();
   TF_RETURN_IF_ERROR(Partition(popts, &client_graph->graph, &partitions));
 
   std::vector<string> device_names;
