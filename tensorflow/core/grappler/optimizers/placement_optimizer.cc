@@ -39,7 +39,7 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
 
   if (summary.execution_time >= Costs::Duration(MIN_EXECUTION_TIME)) {
     VLOG(0) << "Invoking CreateDefaultPlacement\n";
-    CreateDefaultPlacement(item.graph, optimized_graph);
+    CreateDefaultPlacement(cluster, item.graph, optimized_graph);
   } else {
     VLOG(0) << "Returning the same graph\n";
     *optimized_graph = item.graph;
@@ -49,40 +49,35 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
   return Status::OK();
 }
 
-void PlacementOptimizer::CreateDefaultPlacement(const GraphDef& graph_def,
+void PlacementOptimizer::CreateDefaultPlacement(Cluster* cluster,
+                                                const GraphDef& graph_def,
                                                 GraphDef* optimized_graph) {
   set<string> devices = GetMappedDevices(graph_def);
+  int MIN_DEVICES = 2;  // CPU + at least 1 GPU
+  set<string> pinned_devices = GetPinnedDeviceStrings(devices);
+  string default_device =
+      GetDefaultDevice(cluster->GetDeviceNames(), pinned_devices);
 
-  int MIN_DEVICES = 3;  // CPU + at least 2 GPUs
-  if (devices.size() > MIN_DEVICES) {
-    set<string> pinned_devices = GetPinnedDeviceStrings(devices);
-    string default_device = GetDefaultDevice(devices, pinned_devices);
+  if (default_device.empty()) {
+    VLOG(0) << "There are no non-CPU devices to map the Ops to\n";
+    *optimized_graph = graph_def;
+  } else {
+    for (const NodeDef& node : graph_def.node()) {
+      NodeDef* new_node = optimized_graph->add_node();
+      *new_node = node;
 
-    if (default_device.empty()) {
-      VLOG(0) << "There are no non-CPU devices to map the Ops to\n";
-      *optimized_graph = graph_def;
-    } else {
-      for (const NodeDef& node : graph_def.node()) {
-        NodeDef* new_node = optimized_graph->add_node();
-        *new_node = node;
-
-        if (!new_node->device().empty()) {
-          if ((pinned_devices.find(new_node->device()) ==
-               pinned_devices.end()) &&
-              (new_node->device() != default_device)) {
-            VLOG(0) << "node_remapping of " << new_node->name() << " from "
-                    << new_node->device() << " to " << default_device << "\n";
-            new_node->set_device(default_device);
-          }
+      if (!new_node->device().empty()) {
+        if ((pinned_devices.find(new_node->device()) == pinned_devices.end()) &&
+            (new_node->device() != default_device)) {
+          VLOG(0) << "node_remapping of " << new_node->name() << " from "
+                  << new_node->device() << " to " << default_device << "\n";
+          new_node->set_device(default_device);
         }
       }
-
-      *optimized_graph->mutable_versions() = graph_def.versions();
-      VLOG(0) << "All ops mapped to: " << default_device << "\n";
     }
-  } else {
-    *optimized_graph = graph_def;
-    VLOG(0) << "The original graph is unmodified\n";
+
+    *optimized_graph->mutable_versions() = graph_def.versions();
+    VLOG(0) << "All ops mapped to: " << default_device << "\n";
   }
 }
 

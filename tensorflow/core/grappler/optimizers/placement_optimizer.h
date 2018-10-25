@@ -29,7 +29,7 @@ class PlacementOptimizer : public GraphOptimizer {
   RewriterConfig::Toggle opt_level_;
   void PrintDeviceStats(Cluster* cluster);
   void PrintCostStats(const GrapplerItem& item, CostGraphDef& cost_graph);
-  void CreateDefaultPlacement(const GraphDef& graph_def,
+  void CreateDefaultPlacement(Cluster* cluster, const GraphDef& graph_def,
                               GraphDef* optimized_graph);
   set<string> GetWhitelistedOps();
   set<string> GetPinnedDeviceStrings(set<string>& devices);

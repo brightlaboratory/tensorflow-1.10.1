@@ -36,3 +36,4 @@ xcuserdata/**
 *.iml
 local.properties
 gradleBuild
+/.vs
