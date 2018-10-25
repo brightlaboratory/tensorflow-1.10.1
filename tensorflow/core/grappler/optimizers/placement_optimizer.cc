@@ -153,8 +153,8 @@ void PlacementOptimizer::PrintGrapplerItemStats(const GrapplerItem& item) {
   std::vector<std::pair<string, Tensor>>::iterator it1;
   VLOG(0) << "Feed tensors:\n";
   for (it1 = item.feed.begin(); it1 != item.feed.end(); it1++) {
-    VLOG(0) << "Name: " << it1->first < < < <
-        " Description: " << it1->second.DebugString();
+    VLOG(0) << "Name: " << it1->first
+            << " Description: " << (it1->second).DebugString();
   }
 
   VLOG(0) << "fetch: \n";
