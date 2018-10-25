@@ -15,6 +15,9 @@ namespace grappler {
 
 Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
                                     GraphDef* optimized_graph) {
+  *optimized_graph = item.graph;
+  return Status::OK();
+
   VLOG(0) << "Optimize Grappler item: id=" << item.id;
   PrintDeviceStats(cluster);
   PrintGrapplerItemStats(item);
