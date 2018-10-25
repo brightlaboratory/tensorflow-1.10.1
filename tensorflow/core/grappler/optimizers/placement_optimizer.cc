@@ -151,14 +151,14 @@ void PlacementOptimizer::PrintDeviceStats(Cluster* cluster) {
 
 void PlacementOptimizer::PrintGrapplerItemStats(const GrapplerItem& item) {
   VLOG(0) << "Feed tensors:\n";
-  for (std::vector<std::pair<string, Tensor>>::iterator it1 = item.feed.begin();
+  for (vector<std::pair<string, Tensor>>::iterator it1 = item.feed.begin();
        it1 != item.feed.end(); it1++) {
     VLOG(0) << "Name: " << it1->first
             << " Description: " << (it1->second).DebugString();
   }
 
   VLOG(0) << "fetch: \n";
-  for (std::vector<string>::iterator it2 = item.fetch.begin();
+  for (vector<string>::iterator it2 = item.fetch.begin();
        it2 != item.fetch.end(); it2++) {
     VLOG(0) << *it2 << "\n";
   }
