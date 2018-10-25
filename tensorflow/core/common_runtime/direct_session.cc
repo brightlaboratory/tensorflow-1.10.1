@@ -34,8 +34,8 @@ limitations under the License.
 #include "tensorflow/core/common_runtime/scoped_allocator_mgr.h"
 #include "tensorflow/core/common_runtime/step_stats_collector.h"
 #include "tensorflow/core/framework/function.h"
-#include "tensorflow/core/framework/graph.pb_text.h"
 #include "tensorflow/core/framework/graph.pb.h"
+#include "tensorflow/core/framework/graph.pb_text.h"
 #include "tensorflow/core/framework/graph_def_util.h"
 #include "tensorflow/core/framework/log_memory.h"
 #include "tensorflow/core/framework/node_def.pb.h"
@@ -1448,6 +1448,8 @@ Status DirectSession::CreateGraphs(
   popts.control_flow_added = false;
 
   std::unordered_map<string, GraphDef> partitions;
+  VLOG(0) << "Graph to be executed: \n"
+          << &client_graph->graph->ToGraphDefDebug().DebugString();
   TF_RETURN_IF_ERROR(Partition(popts, &client_graph->graph, &partitions));
 
   std::vector<string> device_names;
@@ -1458,6 +1460,7 @@ Status DirectSession::CreateGraphs(
 
   // Check for valid partitions.
   for (const auto& partition : partitions) {
+    VLOG(0) << "partition: \n" << partition.second..DebugString();
     const string local_partition_name =
         DeviceNameUtils::LocalName(partition.first);
     if (std::count(device_names.begin(), device_names.end(),
