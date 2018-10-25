@@ -33,7 +33,7 @@ class PlacementOptimizer : public GraphOptimizer {
                               GraphDef* optimized_graph);
   set<string> GetWhitelistedOps();
   set<string> GetPinnedDeviceStrings(set<string>& devices);
-  string GetDefaultDevice(set<string>& devices, set<string>& pinned_devices);
+  string GetDefaultDevice(vector<string>& devices, set<string>& pinned_devices);
   set<string> GetMappedDevices(const GraphDef& graph_def);
   void PrintGrapplerItemStats(const GrapplerItem& item);
 };

@@ -104,7 +104,7 @@ set<string> PlacementOptimizer::GetWhitelistedOps() {
   return ops;
 }
 
-string PlacementOptimizer::GetDefaultDevice(set<string>& devices,
+string PlacementOptimizer::GetDefaultDevice(vector<string>& devices,
                                             set<string>& pinned_devices) {
   set<string>::iterator it1;
   string default_device;
