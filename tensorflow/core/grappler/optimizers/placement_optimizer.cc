@@ -152,13 +152,13 @@ void PlacementOptimizer::PrintDeviceStats(Cluster* cluster) {
 void PlacementOptimizer::PrintGrapplerItemStats(const GrapplerItem& item) {
   VLOG(0) << "Feed tensors:\n";
 
-  for (const auto& it1 : feed) {
+  for (const auto& it1 : item.feed) {
     VLOG(0) << "Name: " << it1.first
             << " Description: " << (it1.second).DebugString();
   }
 
   VLOG(0) << "fetch: \n";
-  for (const auto& it2 : fetch) {
+  for (const auto& it2 : item.fetch) {
     VLOG(0) << it2 << "\n";
   }
 }
