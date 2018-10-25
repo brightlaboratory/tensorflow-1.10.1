@@ -15,10 +15,9 @@ namespace grappler {
 
 Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
                                     GraphDef* optimized_graph) {
-  *optimized_graph = item.graph;
-  return Status::OK();
-
   VLOG(0) << "Optimize Grappler item: id=" << item.id;
+  VLOG(0) << "optimized_graph statistics:\n";
+  PrintGraphDefStats(optimized_graph);
   PrintDeviceStats(cluster);
   PrintGrapplerItemStats(item);
 
@@ -81,6 +80,14 @@ void PlacementOptimizer::CreateDefaultPlacement(Cluster* cluster,
 
     *optimized_graph->mutable_versions() = graph_def.versions();
     VLOG(0) << "All ops mapped to: " << default_device << "\n";
+  }
+}
+
+void PlacementOptimizer::PrintGraphDefStats(GraphDef* graph_def) {
+  VLOG(0) << "node_size: " << graph_def->node_size() << "\n";
+  for (int i = 0; i < graph_def->node_size(); i++) {
+    const NodeDef& node = graph_def->node(i);
+    VLOG(0) << "Node name: " << node.name();
   }
 }
 

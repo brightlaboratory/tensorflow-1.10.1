@@ -37,6 +37,8 @@ class PlacementOptimizer : public GraphOptimizer {
                           set<string>& pinned_devices);
   set<string> GetMappedDevices(const GraphDef& graph_def);
   void PrintGrapplerItemStats(const GrapplerItem& item);
+  void PrintGraphDefStats(GraphDef* graph_def);
+  void PrintGraphDefStats(GraphDef* graph_def);
 };
 
 }  // end namespace grappler
