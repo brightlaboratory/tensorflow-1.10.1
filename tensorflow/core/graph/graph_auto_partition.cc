@@ -28,8 +28,8 @@
 namespace tensorflow {
 void PrintStats(Graph* g) {
   for (const Node* dst : g->op_nodes()) {
-    g->set_assigned_device_name(dst,
-                                "/job:localhost/replica:0/task:0/device:GPU:0");
+    // g->set_assigned_device_name(dst,
+    //                            "/job:localhost/replica:0/task:0/device:GPU:0");
     VLOG(0) << "Name: " << dst->name() << " num_inputs: " << dst->num_inputs()
             << " num_outputs: " << dst->num_outputs()
             << "requested_device: " << dst->requested_device()
