@@ -1412,6 +1412,8 @@ Status DirectSession::CreateGraphs(
   for (auto placement_pair : current_stateful_placements) {
     const string& node_name = placement_pair.first;
     const string& placement = placement_pair.second;
+    VLOG(0) << "stateful_placements: " << node_name << " at " << placement
+            << "\n";
     auto iter = stateful_placements_.find(node_name);
     if (iter == stateful_placements_.end()) {
       stateful_placements_.insert(std::make_pair(node_name, placement));
@@ -1449,6 +1451,7 @@ Status DirectSession::CreateGraphs(
 
   std::unordered_map<string, GraphDef> partitions;
   VLOG(0) << "Graph to be executed: \n"
+          << "node_size: " << client_graph->graph.node_size() << "\n"
           << client_graph->graph.ToGraphDefDebug().DebugString();
   TF_RETURN_IF_ERROR(Partition(popts, &client_graph->graph, &partitions));
 
@@ -1459,8 +1462,11 @@ Status DirectSession::CreateGraphs(
   }
 
   // Check for valid partitions.
+  VLOG(0) << "partitions.size(): " << partitions.size() << "\n";
   for (const auto& partition : partitions) {
-    VLOG(0) << "partition: \n" << partition.second.DebugString();
+    VLOG(0) << "partition: \n"
+            << "node_size: " << partition.second.node_size() << "\n"
+            << partition.second.DebugString();
     const string local_partition_name =
         DeviceNameUtils::LocalName(partition.first);
     if (std::count(device_names.begin(), device_names.end(),
