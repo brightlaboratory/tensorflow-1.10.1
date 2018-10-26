@@ -1466,8 +1466,7 @@ Status DirectSession::CreateGraphs(
   VLOG(0) << "partitions.size(): " << partitions.size() << "\n";
   for (const auto& partition : partitions) {
     VLOG(0) << "partition: \n"
-            << "num_nodes: " << partition.second.num_nodes()
-            << "num_edges: " << partition.second.num_edges() << "\n"
+            << "num_nodes: " << partition.second.node_size() << "\n"
             << partition.second.DebugString();
     const string local_partition_name =
         DeviceNameUtils::LocalName(partition.first);
