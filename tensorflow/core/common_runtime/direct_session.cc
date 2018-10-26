@@ -1451,7 +1451,8 @@ Status DirectSession::CreateGraphs(
 
   std::unordered_map<string, GraphDef> partitions;
   VLOG(0) << "Graph to be executed: \n"
-          << "node_size: " << client_graph->graph.node_size() << "\n"
+          << "num_nodes: " << client_graph->graph.num_nodes()
+          << "num_edges: " << client_graph->graph.num_edges() << "\n"
           << client_graph->graph.ToGraphDefDebug().DebugString();
   TF_RETURN_IF_ERROR(Partition(popts, &client_graph->graph, &partitions));
 
@@ -1465,7 +1466,8 @@ Status DirectSession::CreateGraphs(
   VLOG(0) << "partitions.size(): " << partitions.size() << "\n";
   for (const auto& partition : partitions) {
     VLOG(0) << "partition: \n"
-            << "node_size: " << partition.second.node_size() << "\n"
+            << "num_nodes: " << partition.second.num_nodes()
+            << "num_edges: " << partition.second.num_edges() << "\n"
             << partition.second.DebugString();
     const string local_partition_name =
         DeviceNameUtils::LocalName(partition.first);
