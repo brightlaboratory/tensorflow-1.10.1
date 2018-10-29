@@ -60,6 +60,7 @@ void PlacementOptimizer::CreateDefaultPlacement(Cluster* cluster,
   set<string> pinned_devices = GetPinnedDeviceStrings(devices);
   string default_device =
       GetDefaultDevice(cluster->GetDeviceNames(), pinned_devices);
+  set<string> whiltelisted_ops = GetWhitelistedOps();
 
   if (default_device.empty()) {
     VLOG(0) << "There are no non-CPU devices to map the Ops to\n";
@@ -72,7 +73,8 @@ void PlacementOptimizer::CreateDefaultPlacement(Cluster* cluster,
       const OpDef* op_def = nullptr;
       OpRegistry::Global()->LookUpOpDef(new_node->op(), &op_def);
 
-      if (op_def != nullptr && !op_def->is_stateful()) {
+      if (op_def != nullptr && !op_def->is_stateful() &&
+          (whiltelisted_ops.find(new_node->op()) != whitelisted_ops.end())) {
         if (!new_node->device().empty()) {
           if ((pinned_devices.find(new_node->device()) ==
                pinned_devices.end()) &&
@@ -125,6 +127,9 @@ set<string> PlacementOptimizer::GetMappedDevices(const GraphDef& graph_def) {
 set<string> PlacementOptimizer::GetWhitelistedOps() {
   set<string> ops;
   ops.insert("MatMul");
+  ops.insert("Add");
+  ops.insert("Mul");
+  ops.insert("ConcatV2");
   return ops;
 }
 
