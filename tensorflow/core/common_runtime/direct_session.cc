@@ -1412,8 +1412,8 @@ Status DirectSession::CreateGraphs(
   for (auto placement_pair : current_stateful_placements) {
     const string& node_name = placement_pair.first;
     const string& placement = placement_pair.second;
-    VLOG(0) << "stateful_placements: " << node_name << " at " << placement
-            << "\n";
+    // VLOG(0) << "stateful_placements: " << node_name << " at " << placement
+    //        << "\n";
     auto iter = stateful_placements_.find(node_name);
     if (iter == stateful_placements_.end()) {
       stateful_placements_.insert(std::make_pair(node_name, placement));

@@ -4,6 +4,7 @@
 #include <set>
 #include "tensorflow/cc/ops/standard_ops.h"
 #include "tensorflow/core/framework/cost_graph.pb.h"
+#include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/grappler/clusters/virtual_cluster.h"
 #include "tensorflow/core/grappler/costs/analytical_cost_estimator.h"
 using namespace std;
@@ -68,12 +69,25 @@ void PlacementOptimizer::CreateDefaultPlacement(Cluster* cluster,
       NodeDef* new_node = optimized_graph->add_node();
       *new_node = node;
 
-      if (!new_node->device().empty()) {
-        if ((pinned_devices.find(new_node->device()) == pinned_devices.end()) &&
-            (new_node->device() != default_device)) {
-          VLOG(0) << "node_remapping of " << new_node->name() << " from "
-                  << new_node->device() << " to " << default_device << "\n";
-          new_node->set_device(default_device);
+      const OpDef* op_def = nullptr;
+      OpRegistry::Global()->LookUpOpDef(new_node->op(), &op_def);
+
+      if (op_def != nullptr && !op_def->is_stateful()) {
+        if (!new_node->device().empty()) {
+          if ((pinned_devices.find(new_node->device()) ==
+               pinned_devices.end()) &&
+              (new_node->device() != default_device)) {
+            VLOG(0) << "node_remapping of " << new_node->name() << " from "
+                    << new_node->device() << " to " << default_device << "\n";
+            new_node->set_device(default_device);
+          }
+        }
+      } else {
+        if (op_def == nullptr) {
+          VLOG(0) << new_node->op()
+                  << "cannot be found in global op registry\n";
+        } else {
+          VLOG(0) << new_node->op() << " is stateful.\n";
         }
       }
     }
