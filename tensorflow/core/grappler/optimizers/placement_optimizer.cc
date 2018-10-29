@@ -79,7 +79,8 @@ void PlacementOptimizer::CreateDefaultPlacement(Cluster* cluster,
           if ((pinned_devices.find(new_node->device()) ==
                pinned_devices.end()) &&
               (new_node->device() != default_device)) {
-            VLOG(0) << "node_remapping of " << new_node->name() << " from "
+            VLOG(0) << "node_remapping of " << new_node->name()
+                    << " op : " << new_node->op << " from "
                     << new_node->device() << " to " << default_device << "\n";
             new_node->set_device(default_device);
           }
