@@ -9,6 +9,14 @@ using namespace std;
 namespace tensorflow {
 namespace grappler {
 
+struct NodeCommCost {
+  string name;
+  it64 ec;  // external cost
+  it64 ic;  // internal cost
+
+  NodeCommCost() : node_name(""), ec(0), ic(0) {}
+};
+
 // Remap TensorFlow subgraphs onto alternative operations or collection of
 // operations to make the overall graph more efficient.
 class PlacementOptimizer : public GraphOptimizer {
@@ -31,6 +39,8 @@ class PlacementOptimizer : public GraphOptimizer {
   void PrintCostStats(const GrapplerItem& item, CostGraphDef& cost_graph);
   void CreateDefaultPlacement(Cluster* cluster, const GraphDef& graph_def,
                               GraphDef* optimized_graph);
+  void MinCutPlacement(Cluster* cluster, const GraphDef& graph_def,
+                       CostGraphDef& cost_graph, GraphDef* optimized_graph);
   set<string> GetWhitelistedOps();
   set<string> GetPinnedDeviceStrings(set<string>& devices);
   string GetDefaultDevice(const vector<string>& devices,
@@ -38,6 +48,11 @@ class PlacementOptimizer : public GraphOptimizer {
   set<string> GetMappedDevices(const GraphDef& graph_def);
   void PrintGrapplerItemStats(const GrapplerItem& item);
   void PrintGraphDefStats(GraphDef* graph_def);
+  bool IsEligibleForRelocation(NodeDef* node, set<string>& pinned_devices,
+                               set<string>& whitelisted_ops);
+  void ComputeNodeCommCosts(const GraphDef& graph_def, CostGraphDef& cost_graph,
+                            set<string>& pinned_devices,
+                            set<string>& whitelisted_ops);
 };
 
 }  // end namespace grappler

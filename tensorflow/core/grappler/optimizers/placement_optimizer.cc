@@ -5,6 +5,7 @@
 #include "tensorflow/cc/ops/standard_ops.h"
 #include "tensorflow/core/framework/cost_graph.pb.h"
 #include "tensorflow/core/framework/op.h"
+#include "tensorflow/core/graph/tensor_id.h"
 #include "tensorflow/core/grappler/clusters/virtual_cluster.h"
 #include "tensorflow/core/grappler/costs/analytical_cost_estimator.h"
 using namespace std;
@@ -184,6 +185,116 @@ void PlacementOptimizer::PrintGrapplerItemStats(const GrapplerItem& item) {
   VLOG(0) << "fetch: \n";
   for (const auto& it2 : item.fetch) {
     VLOG(0) << it2 << "\n";
+  }
+}
+
+void PlacementOptimizer::MinCutPlacement(Cluster* cluster,
+                                         const GraphDef& graph_def,
+                                         CostGraphDef& cost_graph,
+                                         GraphDef* optimized_graph) {
+  set<string> devices = GetMappedDevices(graph_def);
+  set<string> pinned_devices = GetPinnedDeviceStrings(devices);
+  set<string> whitelisted_ops = GetWhitelistedOps();
+
+  if (default_device.empty()) {
+    VLOG(0) << "There are no non-CPU devices to map the Ops to\n";
+    *optimized_graph = graph_def;
+  } else {
+    for (const NodeDef& node : graph_def.node()) {
+      NodeDef* new_node = optimized_graph->add_node();
+      *new_node = node;
+    }
+
+    ComputeNodeCommCosts(graph_def, cost_graph, pinned_devices,
+                         whitelisted_ops);
+    *optimized_graph->mutable_versions() = graph_def.versions();
+  }
+}
+
+void PlacementOptimizer::ComputeNodeCommCosts(const GraphDef& graph_def,
+                                              CostGraphDef& cost_graph,
+                                              set<string>& pinned_devices,
+                                              set<string>& whitelisted_ops) {
+  std::unordered_map<string, const CostGraphDef::Node*> name_to_cost;
+  std::unordered_map<string, const NodeDef*> name_to_node;
+
+  for (int i = 0; i < graph_def.node_size(); i++) {
+    const NodeDef& node = graph_def.node(i);
+    name_to_node[node.name()] = &node;
+  }
+
+  for (int i = 0; i < cost_graph.node_size(); i++) {
+    const CostGraphDef::Node& cnode = cost_graph.node(i);
+    name_to_cost[cnode.name()] = &cnode;
+  }
+
+  for (int i = 0; i < graph_def.node_size(); i++) {
+    const NodeDef& node = graph_def.node(i);
+    if (IsEligibleForRelocation(&node, pinned_devices, whitelisted_ops)) {
+      struct NodeCommCost node_comm_cost;
+      node_comm_cost.name = node.name();
+
+      if (!node.device().empty()) {
+        for (int i = 0; i < node.input_size(); ++i) {
+          const string input_name = node.input(i);
+          if (IsControlInput(input_name)) {
+            continue;
+          }
+
+          TensorId input_tensor_id = ParseTensorName(input_name);
+          const string input_node_name = input_tensor_id.first.ToString();
+
+          auto it1 = name_to_node.find(input_node_name);
+          const Node* adj_node;
+          if (it1 != name_to_node.end()) {
+            adj_node = it1->second;
+          } else {
+            adj_node = NULL;
+            continue;
+          }
+
+          auto it2 = name_to_cost.find(input_node_name);
+          const CostGraphDef::Node* cost_node;
+          if (it2 != name_to_cost.end()) {
+            cost_node = it2->second;
+          } else {
+            cost_node = NULL;
+            continue;
+          }
+        }
+
+        if (!adj_node->device().empty() &&
+            (pinned_devices.find(adj_node->device()) == pinned_devices.end())) {
+          if (adj_node->device() == node->device()) {
+            node_comm_cost.ic += cost_node->get_max_memory_size();
+          } else {
+            node_comm_cost.ec += cost_node->get_max_memory_size();
+          }
+        }
+      }
+
+      VLOG(0) << "node_comm_cost.name: " << node_comm_cost.name
+              << " node_comm_cost.ec: " << node_comm_cost.ec
+              << " node_comm_cost.ic: " << node_comm_cost.ic << "\n";
+    }
+  }
+}
+
+bool PlacementOptimizer::IsEligibleForRelocation(NodeDef* node,
+                                                 set<string>& pinned_devices,
+                                                 set<string>& whitelisted_ops) {
+  const OpDef* op_def = nullptr;
+  OpRegistry::Global()->LookUpOpDef(node->op(), &op_def);
+
+  if (op_def != nullptr && !op_def->is_stateful() &&
+      (whitelisted_ops.find(new_node->op()) != whitelisted_ops.end()) &&
+      !node->device().empty() &&
+      (pinned_devices.find(node->device()) == pinned_devices.end()))
+          ) {
+            return true;
+			}
+  else {
+    return false;
   }
 }
 
