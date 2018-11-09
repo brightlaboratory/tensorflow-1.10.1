@@ -270,9 +270,9 @@ void PlacementOptimizer::ComputeNodeCommCosts(const GraphDef& graph_def,
               (pinned_devices.find(adj_node->device()) ==
                pinned_devices.end())) {
             if (adj_node->device() == node.device()) {
-              node_comm_cost.ic += cost_node->get_max_memory_size();
+              node_comm_cost.ic += cost_node->max_memory_size();
             } else {
-              node_comm_cost.ec += cost_node->get_max_memory_size();
+              node_comm_cost.ec += cost_node->max_memory_size();
             }
           }
         }
