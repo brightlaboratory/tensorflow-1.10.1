@@ -14,7 +14,7 @@ struct NodeCommCost {
   int64 ec;  // external cost
   int64 ic;  // internal cost
 
-  NodeCommCost() : node_name(""), ec(0), ic(0) {}
+  NodeCommCost() : name(""), ec(0), ic(0) {}
 };
 
 // Remap TensorFlow subgraphs onto alternative operations or collection of
