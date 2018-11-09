@@ -8,6 +8,8 @@
 #include "tensorflow/core/graph/tensor_id.h"
 #include "tensorflow/core/grappler/clusters/virtual_cluster.h"
 #include "tensorflow/core/grappler/costs/analytical_cost_estimator.h"
+#include "tensorflow/core/grappler/utils.h"
+
 using namespace std;
 
 namespace tensorflow {
@@ -195,6 +197,8 @@ void PlacementOptimizer::MinCutPlacement(Cluster* cluster,
   set<string> devices = GetMappedDevices(graph_def);
   set<string> pinned_devices = GetPinnedDeviceStrings(devices);
   set<string> whitelisted_ops = GetWhitelistedOps();
+  string default_device =
+      GetDefaultDevice(cluster->GetDeviceNames(), pinned_devices);
 
   if (default_device.empty()) {
     VLOG(0) << "There are no non-CPU devices to map the Ops to\n";
@@ -245,7 +249,7 @@ void PlacementOptimizer::ComputeNodeCommCosts(const GraphDef& graph_def,
           const string input_node_name = input_tensor_id.first.ToString();
 
           auto it1 = name_to_node.find(input_node_name);
-          const Node* adj_node;
+          const NodeDef* adj_node;
           if (it1 != name_to_node.end()) {
             adj_node = it1->second;
           } else {
@@ -261,14 +265,15 @@ void PlacementOptimizer::ComputeNodeCommCosts(const GraphDef& graph_def,
             cost_node = NULL;
             continue;
           }
-        }
 
-        if (!adj_node->device().empty() &&
-            (pinned_devices.find(adj_node->device()) == pinned_devices.end())) {
-          if (adj_node->device() == node->device()) {
-            node_comm_cost.ic += cost_node->get_max_memory_size();
-          } else {
-            node_comm_cost.ec += cost_node->get_max_memory_size();
+          if (!adj_node->device().empty() &&
+              (pinned_devices.find(adj_node->device()) ==
+               pinned_devices.end())) {
+            if (adj_node->device() == node.device()) {
+              node_comm_cost.ic += cost_node->get_max_memory_size();
+            } else {
+              node_comm_cost.ec += cost_node->get_max_memory_size();
+            }
           }
         }
       }
@@ -280,20 +285,18 @@ void PlacementOptimizer::ComputeNodeCommCosts(const GraphDef& graph_def,
   }
 }
 
-bool PlacementOptimizer::IsEligibleForRelocation(NodeDef* node,
+bool PlacementOptimizer::IsEligibleForRelocation(const NodeDef* node,
                                                  set<string>& pinned_devices,
                                                  set<string>& whitelisted_ops) {
   const OpDef* op_def = nullptr;
   OpRegistry::Global()->LookUpOpDef(node->op(), &op_def);
 
   if (op_def != nullptr && !op_def->is_stateful() &&
-      (whitelisted_ops.find(new_node->op()) != whitelisted_ops.end()) &&
+      (whitelisted_ops.find(node->op()) != whitelisted_ops.end()) &&
       !node->device().empty() &&
-      (pinned_devices.find(node->device()) == pinned_devices.end()))
-          ) {
-            return true;
-			}
-  else {
+      (pinned_devices.find(node->device()) == pinned_devices.end())) {
+    return true;
+  } else {
     return false;
   }
 }

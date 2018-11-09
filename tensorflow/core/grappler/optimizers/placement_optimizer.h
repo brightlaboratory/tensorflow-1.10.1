@@ -11,8 +11,8 @@ namespace grappler {
 
 struct NodeCommCost {
   string name;
-  it64 ec;  // external cost
-  it64 ic;  // internal cost
+  int64 ec;  // external cost
+  int64 ic;  // internal cost
 
   NodeCommCost() : node_name(""), ec(0), ic(0) {}
 };
@@ -48,7 +48,7 @@ class PlacementOptimizer : public GraphOptimizer {
   set<string> GetMappedDevices(const GraphDef& graph_def);
   void PrintGrapplerItemStats(const GrapplerItem& item);
   void PrintGraphDefStats(GraphDef* graph_def);
-  bool IsEligibleForRelocation(NodeDef* node, set<string>& pinned_devices,
+  bool IsEligibleForRelocation(const NodeDef* node, set<string>& pinned_devices,
                                set<string>& whitelisted_ops);
   void ComputeNodeCommCosts(const GraphDef& graph_def, CostGraphDef& cost_graph,
                             set<string>& pinned_devices,
