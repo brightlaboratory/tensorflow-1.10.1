@@ -45,7 +45,7 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
 
   if (summary.execution_time >= Costs::Duration(MIN_EXECUTION_TIME)) {
     VLOG(0) << "Invoking CreateDefaultPlacement\n";
-    CreateDefaultPlacement(cluster, item.graph, optimized_graph);
+    MinCutPlacement(cluster, item.graph, optimized_graph);
   } else {
     VLOG(0) << "Returning the same graph\n";
     *optimized_graph = item.graph;
