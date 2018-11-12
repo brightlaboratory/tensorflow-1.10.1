@@ -223,8 +223,9 @@ void PlacementOptimizer::MinCutPlacement(Cluster* cluster,
     std::unordered_map<const NodeDef*, struct NodeCommCost*> node_to_commcost;
     std::unordered_map<string, const CostGraphDef::Node*> name_to_cost;
     std::unordered_map<string, const NodeDef*> name_to_node;
-    ComputeNodeCommCosts(graph_def, cost_graph, pinned_devices, whitelisted_ops,
-                         node_to_commcost, name_to_cost, name_to_node);
+    ComputeNodeCommCosts(optimized_graph, cost_graph, pinned_devices,
+                         whitelisted_ops, node_to_commcost, name_to_cost,
+                         name_to_node);
     PartitionTheGraph(cluster, node_to_commcost, name_to_cost, name_to_node);
     FreeLocallyAllocatedMemory(node_to_commcost);
     *optimized_graph->mutable_versions() = graph_def.versions();
@@ -253,7 +254,7 @@ int PlacementOptimizer::ReassignNodes(
 
     string orig_device = node->device();
     string new_device = orig_device;
-    int64 current_comm_cost = commcost->ec - commcost->ic;
+    int64 current_comm_cost = current_cost_node->ec - current_cost_node->ic;
     struct NodeCommCost* new_comm_cost = NULL;
     for (auto device : devices) {
       if (device != orig_device) {
@@ -286,13 +287,13 @@ int PlacementOptimizer::ReassignNodes(
 }
 
 void PlacementOptimizer::ComputeNodeCommCosts(
-    const GraphDef& graph_def, CostGraphDef& cost_graph,
+    const GraphDef* graph_def, CostGraphDef& cost_graph,
     set<string>& pinned_devices, set<string>& whitelisted_ops,
     std::unordered_map<const NodeDef*, struct NodeCommCost*>& node_to_commcost,
     std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
     std::unordered_map<string, const NodeDef*>& name_to_node) {
-  for (int i = 0; i < graph_def.node_size(); i++) {
-    const NodeDef& node = graph_def.node(i);
+  for (int i = 0; i < graph_def->node_size(); i++) {
+    const NodeDef& node = graph_def->node(i);
     name_to_node[node.name()] = &node;
   }
 
@@ -301,8 +302,8 @@ void PlacementOptimizer::ComputeNodeCommCosts(
     name_to_cost[cnode.name()] = &cnode;
   }
 
-  for (int i = 0; i < graph_def.node_size(); i++) {
-    const NodeDef& node = graph_def.node(i);
+  for (int i = 0; i < graph_def->node_size(); i++) {
+    const NodeDef& node = graph_def->node(i);
     if (IsEligibleForRelocation(&node, pinned_devices, whitelisted_ops)) {
       struct NodeCommCost* node_comm_cost =
           ComputeNodeCommCost(node, name_to_cost, name_to_node);
