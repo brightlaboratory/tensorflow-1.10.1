@@ -215,17 +215,18 @@ void PlacementOptimizer::MinCutPlacement(Cluster* cluster,
     VLOG(0) << "There are no non-CPU devices to map the Ops to\n";
     *optimized_graph = graph_def;
   } else {
+    std::unordered_map<string, NodeDef*> name_to_node;
     for (const NodeDef& node : graph_def.node()) {
       NodeDef* new_node = optimized_graph->add_node();
       *new_node = node;
+      name_to_node[new_node->name()] = new_node;
     }
 
     std::unordered_map<NodeDef*, struct NodeCommCost*> node_to_commcost;
     std::unordered_map<string, const CostGraphDef::Node*> name_to_cost;
-    std::unordered_map<string, NodeDef*> name_to_node;
-    ComputeNodeCommCosts(optimized_graph, cost_graph, pinned_devices,
-                         whitelisted_ops, node_to_commcost, name_to_cost,
-                         name_to_node);
+
+    ComputeNodeCommCosts(cost_graph, pinned_devices, whitelisted_ops,
+                         node_to_commcost, name_to_cost, name_to_node);
     PartitionTheGraph(cluster, node_to_commcost, name_to_cost, name_to_node);
     FreeLocallyAllocatedMemory(node_to_commcost);
     *optimized_graph->mutable_versions() = graph_def.versions();
@@ -287,27 +288,22 @@ int PlacementOptimizer::ReassignNodes(
 }
 
 void PlacementOptimizer::ComputeNodeCommCosts(
-    const GraphDef* graph_def, CostGraphDef& cost_graph,
-    set<string>& pinned_devices, set<string>& whitelisted_ops,
+    CostGraphDef& cost_graph, set<string>& pinned_devices,
+    set<string>& whitelisted_ops,
     std::unordered_map<NodeDef*, struct NodeCommCost*>& node_to_commcost,
     std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
     std::unordered_map<string, NodeDef*>& name_to_node) {
-  for (int i = 0; i < graph_def->node_size(); i++) {
-    NodeDef& node = graph_def->node(i);
-    name_to_node[node.name()] = &node;
-  }
-
   for (int i = 0; i < cost_graph.node_size(); i++) {
     const CostGraphDef::Node& cnode = cost_graph.node(i);
     name_to_cost[cnode.name()] = &cnode;
   }
 
-  for (int i = 0; i < graph_def->node_size(); i++) {
-    NodeDef& node = graph_def->node(i);
-    if (IsEligibleForRelocation(&node, pinned_devices, whitelisted_ops)) {
+  for (auto i : name_to_node) {
+    NodeDef* node = i.second;
+    if (IsEligibleForRelocation(node, pinned_devices, whitelisted_ops)) {
       struct NodeCommCost* node_comm_cost =
-          ComputeNodeCommCost(&node, name_to_cost, name_to_node);
-      node_to_commcost[&node] = node_comm_cost;
+          ComputeNodeCommCost(node, name_to_cost, name_to_node);
+      node_to_commcost[node] = node_comm_cost;
       VLOG(0) << "node_comm_cost.name: " << node->name
               << " node_comm_cost.ec: " << node_comm_cost->ec
               << " node_comm_cost.ic: " << node_comm_cost->ic << "\n";

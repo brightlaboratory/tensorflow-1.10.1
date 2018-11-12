@@ -65,8 +65,8 @@ class PlacementOptimizer : public GraphOptimizer {
                                set<string>& whitelisted_ops);
 
   void ComputeNodeCommCosts(
-      const GraphDef* graph_def, CostGraphDef& cost_graph,
-      set<string>& pinned_devices, set<string>& whitelisted_ops,
+      CostGraphDef& cost_graph, set<string>& pinned_devices,
+      set<string>& whitelisted_ops,
       std::unordered_map<NodeDef*, struct NodeCommCost*>& node_to_commcost,
       std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
       std::unordered_map<string, NodeDef*>& name_to_node);
