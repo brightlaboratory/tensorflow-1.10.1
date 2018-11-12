@@ -179,12 +179,12 @@ void PlacementOptimizer::PrintDeviceStats(Cluster* cluster) {
 set<string> PlacementOptimizer::GetDevices(Cluster* cluster) {
   const DeviceSet* device_set = cluster->GetDeviceSet();
   const std::vector<Device*>& devices = device_set->devices();
-  set<string> devices;
+  set<string> device_strings;
   for (int i = 0; i < devices.size(); i++) {
-    devices.insert(devices.at(i)->name());
+    device_strings.insert(devices.at(i)->name());
   }
 
-  return devices;
+  return device_strings;
 }
 
 void PlacementOptimizer::PrintGrapplerItemStats(const GrapplerItem& item) {
@@ -234,8 +234,7 @@ void PlacementOptimizer::MinCutPlacement(Cluster* cluster,
 
 void PlacementOptimizer::PartitionTheGraph(
     Cluster* cluster,
-    std::unordered_map<const NodeDef*, struct NodeCommCost * node_comm_cost>&
-        node_to_commcost,
+    std::unordered_map<const NodeDef*, struct NodeCommCost*>& node_to_commcost,
     std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
     std::unordered_map<string, const NodeDef*>& name_to_node) {
   set<string> devices = GetDevices(cluster);
@@ -244,8 +243,7 @@ void PlacementOptimizer::PartitionTheGraph(
 
 int PlacementOptimizer::ReassignNodes(
     set<string>& devices,
-    std::unordered_map<const NodeDef*, struct NodeCommCost * node_to_commcost>&
-        node_to_commcost,
+    std::unordered_map<const NodeDef*, struct NodeCommCost*>& node_to_commcost,
     std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
     std::unordered_map<string, const NodeDef*>& name_to_node) {
   int numReassigned = 0;
