@@ -304,7 +304,7 @@ void PlacementOptimizer::ComputeNodeCommCosts(
       struct NodeCommCost* node_comm_cost =
           ComputeNodeCommCost(node, name_to_cost, name_to_node);
       node_to_commcost[node] = node_comm_cost;
-      VLOG(0) << "node_comm_cost.name: " << node->name
+      VLOG(0) << "node_comm_cost.name: " << node->name()
               << " node_comm_cost.ec: " << node_comm_cost->ec
               << " node_comm_cost.ic: " << node_comm_cost->ic << "\n";
     }
@@ -318,8 +318,8 @@ struct NodeCommCost* PlacementOptimizer::ComputeNodeCommCost(
   struct NodeCommCost* node_comm_cost =
       (struct NodeCommCost*)malloc(sizeof(struct NodeCommCost));
 
-  for (int i = 0; i < node.input_size(); ++i) {
-    const string input_name = node.input(i);
+  for (int i = 0; i < node->input_size(); ++i) {
+    const string input_name = node->input(i);
     if (IsControlInput(input_name)) {
       continue;
     }
@@ -348,7 +348,7 @@ struct NodeCommCost* PlacementOptimizer::ComputeNodeCommCost(
     // TODO: Think about if we need to consider CPU mapped adj_node
     if (!adj_node->device().empty() /* &&
             (pinned_devices.find(adj_node->device()) == pinned_devices.end()) */) {
-      if (adj_node->device() == node.device()) {
+      if (adj_node->device() == node->device()) {
         node_comm_cost->ic += cost_node->max_memory_size();
       } else {
         node_comm_cost->ec += cost_node->max_memory_size();
@@ -356,12 +356,14 @@ struct NodeCommCost* PlacementOptimizer::ComputeNodeCommCost(
     }
   }
 
-  auto it = name_to_cost.find(node.name());
+  auto it = name_to_cost.find(node->name());
   const CostGraphDef::Node* cost_node = NULL;
   if (it != name_to_cost.end()) {
     cost_node = it->second;
     node_comm_cost->compute_cost = cost_node->compute_cost();
   }
+
+  return node_comm_cost;
 }
 
 void PlacementOptimizer::FreeLocallyAllocatedMemory(
