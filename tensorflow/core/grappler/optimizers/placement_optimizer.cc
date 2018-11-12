@@ -249,7 +249,7 @@ int PlacementOptimizer::ReassignNodes(
   int numReassigned = 0;
 
   for (auto i : node_to_commcost) {
-    const NodeDef* node = i.first;
+    NodeDef* node = i.first;
     struct NodeCommCost* current_cost_node = i.second;
 
     string orig_device = node->device();
@@ -293,7 +293,7 @@ void PlacementOptimizer::ComputeNodeCommCosts(
     std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
     std::unordered_map<string, NodeDef*>& name_to_node) {
   for (int i = 0; i < graph_def->node_size(); i++) {
-    const NodeDef& node = graph_def->node(i);
+    NodeDef& node = graph_def->node(i);
     name_to_node[node.name()] = &node;
   }
 
