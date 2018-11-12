@@ -67,33 +67,29 @@ class PlacementOptimizer : public GraphOptimizer {
   void ComputeNodeCommCosts(
       const GraphDef* graph_def, CostGraphDef& cost_graph,
       set<string>& pinned_devices, set<string>& whitelisted_ops,
-      std::unordered_map<const NodeDef*, struct NodeCommCost*>&
-          node_to_commcost,
+      std::unordered_map<NodeDef*, struct NodeCommCost*>& node_to_commcost,
       std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
-      std::unordered_map<string, const NodeDef*>& name_to_node);
+      std::unordered_map<string, NodeDef*>& name_to_node);
 
   void PartitionTheGraph(
       Cluster* cluster,
-      std::unordered_map<const NodeDef*, struct NodeCommCost*>&
-          node_to_commcost,
+      std::unordered_map<NodeDef*, struct NodeCommCost*>& node_to_commcost,
       std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
-      std::unordered_map<string, const NodeDef*>& name_to_node);
+      std::unordered_map<string, NodeDef*>& name_to_node);
 
   int ReassignNodes(
       set<string>& devices,
-      std::unordered_map<const NodeDef*, struct NodeCommCost*>&
-          node_to_commcost,
+      std::unordered_map<NodeDef*, struct NodeCommCost*>& node_to_commcost,
       std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
-      std::unordered_map<string, const NodeDef*>& name_to_node);
+      std::unordered_map<string, NodeDef*>& name_to_node);
 
   NodeCommCost* ComputeNodeCommCost(
-      const NodeDef& node,
+      NodeDef* node,
       std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
-      std::unordered_map<string, const NodeDef*>& name_to_node);
+      std::unordered_map<string, NodeDef*>& name_to_node);
 
   void FreeLocallyAllocatedMemory(
-      std::unordered_map<const NodeDef*, struct NodeCommCost*>&
-          node_to_commcost);
+      std::unordered_map<NodeDef*, struct NodeCommCost*>& node_to_commcost);
 };
 
 }  // end namespace grappler
