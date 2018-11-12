@@ -220,8 +220,7 @@ void PlacementOptimizer::MinCutPlacement(Cluster* cluster,
       *new_node = node;
     }
 
-    std::unordered_map<const NodeDef*, struct NodeCommCost * node_comm_cost>
-        node_to_commcost;
+    std::unordered_map<const NodeDef*, struct NodeCommCost*> node_to_commcost;
     std::unordered_map<string, const CostGraphDef::Node*> name_to_cost;
     std::unordered_map<string, const NodeDef*> name_to_node;
     ComputeNodeCommCosts(graph_def, cost_graph, pinned_devices, whitelisted_ops,
@@ -289,8 +288,7 @@ int PlacementOptimizer::ReassignNodes(
 void PlacementOptimizer::ComputeNodeCommCosts(
     const GraphDef& graph_def, CostGraphDef& cost_graph,
     set<string>& pinned_devices, set<string>& whitelisted_ops,
-    std::unordered_map<const NodeDef*, struct NodeCommCost * node_comm_cost>&
-        node_to_commcost,
+    std::unordered_map<const NodeDef*, struct NodeCommCost*>& node_to_commcost,
     std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
     std::unordered_map<string, const NodeDef*>& name_to_node) {
   for (int i = 0; i < graph_def.node_size(); i++) {
@@ -370,7 +368,7 @@ struct NodeCommCost* PlacementOptimizer::ComputeNodeCommCost(
 }
 
 void PlacementOptimizer::FreeLocallyAllocatedMemory(
-    std::unordered_map<const NodeDef*, struct NodeCommCost * node_comm_cost>&
+    std::unordered_map<const NodeDef*, struct NodeCommCost*>&
         node_to_commcost) {
   for (auto i : node_to_commcost) {
     free(i.second);

@@ -81,8 +81,7 @@ class PlacementOptimizer : public GraphOptimizer {
 
   int ReassignNodes(
       set<string>& devices,
-      std::unordered_map<const NodeDef*,
-                         struct NodeCommCost * node_to_commcost>&
+      std::unordered_map<const NodeDef*, struct NodeCommCost*>&
           node_to_commcost,
       std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
       std::unordered_map<string, const NodeDef*>& name_to_node);
@@ -93,7 +92,7 @@ class PlacementOptimizer : public GraphOptimizer {
       std::unordered_map<string, const NodeDef*>& name_to_node);
 
   void FreeLocallyAllocatedMemory(
-      std::unordered_map<const NodeDef*, struct NodeCommCost * node_comm_cost>&
+      std::unordered_map<const NodeDef*, struct NodeCommCost*>&
           node_to_commcost);
 };
 
