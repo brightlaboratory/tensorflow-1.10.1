@@ -176,6 +176,17 @@ void PlacementOptimizer::PrintDeviceStats(Cluster* cluster) {
   }
 }
 
+set<string> PlacementOptimizer::GetDevices(Cluster* cluster) {
+  const DeviceSet* device_set = cluster->GetDeviceSet();
+  const std::vector<Device*>& devices = device_set->devices();
+  set<string> devices;
+  for (int i = 0; i < devices.size(); i++) {
+    devices.insert(devices.at(i)->name());
+  }
+
+  return devices;
+}
+
 void PlacementOptimizer::PrintGrapplerItemStats(const GrapplerItem& item) {
   VLOG(0) << "Feed tensors:\n";
 
@@ -209,19 +220,81 @@ void PlacementOptimizer::MinCutPlacement(Cluster* cluster,
       *new_node = node;
     }
 
-    ComputeNodeCommCosts(graph_def, cost_graph, pinned_devices,
-                         whitelisted_ops);
+    std::unordered_map<const NodeDef*, struct NodeCommCost * node_comm_cost>
+        node_to_commcost;
+    std::unordered_map<string, const CostGraphDef::Node*> name_to_cost;
+    std::unordered_map<string, const NodeDef*> name_to_node;
+    ComputeNodeCommCosts(graph_def, cost_graph, pinned_devices, whitelisted_ops,
+                         node_to_commcost, name_to_cost, name_to_node);
+    PartitionTheGraph(cluster, node_to_commcost, name_to_cost, name_to_node);
+    FreeLocallyAllocatedMemory(node_to_commcost);
     *optimized_graph->mutable_versions() = graph_def.versions();
   }
 }
 
-void PlacementOptimizer::ComputeNodeCommCosts(const GraphDef& graph_def,
-                                              CostGraphDef& cost_graph,
-                                              set<string>& pinned_devices,
-                                              set<string>& whitelisted_ops) {
-  std::unordered_map<string, const CostGraphDef::Node*> name_to_cost;
-  std::unordered_map<string, const NodeDef*> name_to_node;
+void PlacementOptimizer::PartitionTheGraph(
+    Cluster* cluster,
+    std::unordered_map<const NodeDef*, struct NodeCommCost * node_comm_cost>&
+        node_to_commcost,
+    std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
+    std::unordered_map<string, const NodeDef*>& name_to_node) {
+  set<string> devices = GetDevices(cluster);
+  ReassignNodes(devices, node_to_commcost, name_to_cost, name_to_node);
+}
 
+int PlacementOptimizer::ReassignNodes(
+    set<string>& devices,
+    std::unordered_map<const NodeDef*, struct NodeCommCost * node_to_commcost>&
+        node_to_commcost,
+    std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
+    std::unordered_map<string, const NodeDef*>& name_to_node) {
+  int numReassigned = 0;
+
+  for (auto i : node_to_commcost) {
+    const NodeDef* node = i.first;
+    struct NodeCommCost* current_cost_node = i.second;
+
+    string orig_device = node->device();
+    string new_device = orig_device;
+    int64 current_comm_cost = commcost->ec - commcost->ic;
+    struct NodeCommCost* new_comm_cost = NULL;
+    for (auto device : devices) {
+      if (device != orig_device) {
+        node->set_device(device);
+        struct NodeCommCost* node_commcost =
+            ComputeNodeCommCost(node, name_to_cost, name_to_node);
+
+        int64 new_comm_cost = node_commcost->ec - node_commcost->ic;
+
+        if (new_comm_cost < current_comm_cost) {
+          if (current_cost_node) {
+            free(current_cost_node);
+          }
+
+          current_cost_node = node_commcost;
+          new_device = device;
+        } else {
+          free(node_commcost);
+        }
+      }
+    }
+
+    if (new_device != orig_device) {
+      node->set_device(new_device);
+      numReassigned++;
+    }
+  }
+
+  return numReassigned;
+}
+
+void PlacementOptimizer::ComputeNodeCommCosts(
+    const GraphDef& graph_def, CostGraphDef& cost_graph,
+    set<string>& pinned_devices, set<string>& whitelisted_ops,
+    std::unordered_map<const NodeDef*, struct NodeCommCost * node_comm_cost>&
+        node_to_commcost,
+    std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
+    std::unordered_map<string, const NodeDef*>& name_to_node) {
   for (int i = 0; i < graph_def.node_size(); i++) {
     const NodeDef& node = graph_def.node(i);
     name_to_node[node.name()] = &node;
@@ -235,53 +308,74 @@ void PlacementOptimizer::ComputeNodeCommCosts(const GraphDef& graph_def,
   for (int i = 0; i < graph_def.node_size(); i++) {
     const NodeDef& node = graph_def.node(i);
     if (IsEligibleForRelocation(&node, pinned_devices, whitelisted_ops)) {
-      struct NodeCommCost node_comm_cost;
-      node_comm_cost.name = node.name();
-
-      if (!node.device().empty()) {
-        for (int i = 0; i < node.input_size(); ++i) {
-          const string input_name = node.input(i);
-          if (IsControlInput(input_name)) {
-            continue;
-          }
-
-          TensorId input_tensor_id = ParseTensorName(input_name);
-          const string input_node_name = input_tensor_id.first.ToString();
-
-          auto it1 = name_to_node.find(input_node_name);
-          const NodeDef* adj_node;
-          if (it1 != name_to_node.end()) {
-            adj_node = it1->second;
-          } else {
-            adj_node = NULL;
-            continue;
-          }
-
-          auto it2 = name_to_cost.find(input_node_name);
-          const CostGraphDef::Node* cost_node;
-          if (it2 != name_to_cost.end()) {
-            cost_node = it2->second;
-          } else {
-            cost_node = NULL;
-            continue;
-          }
-
-          if (!adj_node->device().empty() &&
-              (pinned_devices.find(adj_node->device()) ==
-               pinned_devices.end())) {
-            if (adj_node->device() == node.device()) {
-              node_comm_cost.ic += cost_node->max_memory_size();
-            } else {
-              node_comm_cost.ec += cost_node->max_memory_size();
-            }
-          }
-        }
-      }
-
-      VLOG(0) << "node_comm_cost.name: " << node_comm_cost.name
-              << " node_comm_cost.ec: " << node_comm_cost.ec
-              << " node_comm_cost.ic: " << node_comm_cost.ic << "\n";
+      struct NodeCommCost* node_comm_cost =
+          ComputeNodeCommCost(node, name_to_cost, name_to_node);
+      node_to_commcost[&node] = node_comm_cost;
+      VLOG(0) << "node_comm_cost.name: " << node.name
+              << " node_comm_cost.ec: " << node_comm_cost->ec
+              << " node_comm_cost.ic: " << node_comm_cost->ic << "\n";
     }
+  }
+}
+
+struct NodeCommCost* PlacementOptimizer::ComputeNodeCommCost(
+    const NodeDef& node,
+    std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
+    std::unordered_map<string, const NodeDef*>& name_to_node) {
+  struct NodeCommCost* node_comm_cost =
+      (struct NodeCommCost*)malloc(sizeof(struct NodeCommCost));
+
+  for (int i = 0; i < node.input_size(); ++i) {
+    const string input_name = node.input(i);
+    if (IsControlInput(input_name)) {
+      continue;
+    }
+
+    TensorId input_tensor_id = ParseTensorName(input_name);
+    const string input_node_name = input_tensor_id.first.ToString();
+
+    auto it1 = name_to_node.find(input_node_name);
+    const NodeDef* adj_node;
+    if (it1 != name_to_node.end()) {
+      adj_node = it1->second;
+    } else {
+      adj_node = NULL;
+      continue;
+    }
+
+    auto it2 = name_to_cost.find(input_node_name);
+    const CostGraphDef::Node* cost_node;
+    if (it2 != name_to_cost.end()) {
+      cost_node = it2->second;
+    } else {
+      cost_node = NULL;
+      continue;
+    }
+
+    // TODO: Think about if we need to consider CPU mapped adj_node
+    if (!adj_node->device().empty() /* &&
+            (pinned_devices.find(adj_node->device()) == pinned_devices.end()) */) {
+      if (adj_node->device() == node.device()) {
+        node_comm_cost->ic += cost_node->max_memory_size();
+      } else {
+        node_comm_cost->ec += cost_node->max_memory_size();
+      }
+    }
+  }
+
+  auto it = name_to_cost.find(node.name());
+  const CostGraphDef::Node* cost_node = NULL;
+  if (it != name_to_cost.end()) {
+    cost_node = it->second;
+    node_comm_cost->compute_cost = cost_node->compute_cost();
+  }
+}
+
+void PlacementOptimizer::FreeLocallyAllocatedMemory(
+    std::unordered_map<const NodeDef*, struct NodeCommCost * node_comm_cost>&
+        node_to_commcost) {
+  for (auto i : node_to_commcost) {
+    free(i.second);
   }
 }
 
@@ -291,10 +385,11 @@ bool PlacementOptimizer::IsEligibleForRelocation(const NodeDef* node,
   const OpDef* op_def = nullptr;
   OpRegistry::Global()->LookUpOpDef(node->op(), &op_def);
 
+  // TODO: Think about if we need to consider CPU mapped adj_node
   if (op_def != nullptr && !op_def->is_stateful() &&
       (whitelisted_ops.find(node->op()) != whitelisted_ops.end()) &&
-      !node->device().empty() &&
-      (pinned_devices.find(node->device()) == pinned_devices.end())) {
+      !node->device().empty() /* &&
+      (pinned_devices.find(node->device()) == pinned_devices.end()) */) {
     return true;
   } else {
     return false;

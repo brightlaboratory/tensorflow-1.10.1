@@ -10,11 +10,11 @@ namespace tensorflow {
 namespace grappler {
 
 struct NodeCommCost {
-  string name;
+  int64 compute_cost;
   int64 ec;  // external cost
   int64 ic;  // internal cost
 
-  NodeCommCost() : name(""), ec(0), ic(0) {}
+  NodeCommCost() : compute_cost(0), ec(0), ic(0) {}
 };
 
 // Remap TensorFlow subgraphs onto alternative operations or collection of
@@ -35,24 +35,66 @@ class PlacementOptimizer : public GraphOptimizer {
 
  private:
   RewriterConfig::Toggle opt_level_;
+
   void PrintDeviceStats(Cluster* cluster);
+
   void PrintCostStats(const GrapplerItem& item, CostGraphDef& cost_graph);
+
   void CreateDefaultPlacement(Cluster* cluster, const GraphDef& graph_def,
                               GraphDef* optimized_graph);
+
   void MinCutPlacement(Cluster* cluster, const GraphDef& graph_def,
                        CostGraphDef& cost_graph, GraphDef* optimized_graph);
+
   set<string> GetWhitelistedOps();
+
   set<string> GetPinnedDeviceStrings(set<string>& devices);
+
   string GetDefaultDevice(const vector<string>& devices,
                           set<string>& pinned_devices);
+
   set<string> GetMappedDevices(const GraphDef& graph_def);
+
+  set<string> GetDevices(Cluster* cluster);
+
   void PrintGrapplerItemStats(const GrapplerItem& item);
+
   void PrintGraphDefStats(GraphDef* graph_def);
+
   bool IsEligibleForRelocation(const NodeDef* node, set<string>& pinned_devices,
                                set<string>& whitelisted_ops);
-  void ComputeNodeCommCosts(const GraphDef& graph_def, CostGraphDef& cost_graph,
-                            set<string>& pinned_devices,
-                            set<string>& whitelisted_ops);
+
+  void ComputeNodeCommCosts(
+      const GraphDef& graph_def, CostGraphDef& cost_graph,
+      set<string>& pinned_devices, set<string>& whitelisted_ops,
+      std::unordered_map<const NodeDef*, struct NodeCommCost * node_comm_cost>&
+          node_to_commcost,
+      std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
+      std::unordered_map<string, const NodeDef*>& name_to_node);
+
+  void PartitionTheGraph(
+      Cluster* cluster,
+      std::unordered_map<const NodeDef*, struct NodeCommCost * node_comm_cost>&
+          node_to_commcost,
+      std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
+      std::unordered_map<string, const NodeDef*>& name_to_node);
+
+  int ReassignNodes(
+      set<string>& devices,
+      std::unordered_map<const NodeDef*,
+                         struct NodeCommCost * node_to_commcost>&
+          node_to_commcost,
+      std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
+      std::unordered_map<string, const NodeDef*>& name_to_node);
+
+  NodeCommCost* ComputeNodeCommCost(
+      const NodeDef& node,
+      std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
+      std::unordered_map<string, const NodeDef*>& name_to_node);
+
+  void FreeLocallyAllocatedMemory(
+      std::unordered_map<const NodeDef*, struct NodeCommCost * node_comm_cost>&
+          node_to_commcost);
 };
 
 }  // end namespace grappler
