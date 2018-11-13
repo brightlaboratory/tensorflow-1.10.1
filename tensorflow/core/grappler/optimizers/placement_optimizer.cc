@@ -239,7 +239,11 @@ void PlacementOptimizer::PartitionTheGraph(
     std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
     std::unordered_map<string, NodeDef*>& name_to_node) {
   set<string> devices = GetDevices(cluster);
-  ReassignNodes(devices, node_to_commcost, name_to_cost, name_to_node);
+  VLOG(0) << "Entering PartitionTheGraph\n";
+  int numReassigned =
+      ReassignNodes(devices, node_to_commcost, name_to_cost, name_to_node);
+  VLOG(0) << "numReassigned: " << numReassigned << "\n";
+  VLOG(0) << "Returning from PartitionTheGraph\n";
 }
 
 int PlacementOptimizer::ReassignNodes(
@@ -247,6 +251,7 @@ int PlacementOptimizer::ReassignNodes(
     std::unordered_map<NodeDef*, struct NodeCommCost*>& node_to_commcost,
     std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
     std::unordered_map<string, NodeDef*>& name_to_node) {
+  VLOG(0) << "Entering ReassignNodes\n";
   int numReassigned = 0;
 
   for (auto i : node_to_commcost) {
@@ -272,6 +277,7 @@ int PlacementOptimizer::ReassignNodes(
 
           current_cost_node = node_commcost;
           new_device = device;
+          node_to_commcost[node] = node_commcost;
         } else {
           free(node_commcost);
         }
@@ -279,11 +285,15 @@ int PlacementOptimizer::ReassignNodes(
     }
 
     if (new_device != orig_device) {
+      VLOG(0) << "Node " << node->name() << " has been assigned from "
+              << orig_device << " to " << new_device << "\n";
+
       node->set_device(new_device);
       numReassigned++;
     }
   }
 
+  VLOG(0) << "Returning from ReassignNodes\n";
   return numReassigned;
 }
 
