@@ -325,15 +325,18 @@ bool PlacementOptimizer::IsBeneficialToMoveNode(
       ((double)compute_costs[device] + current_compute_cost) /
       ((double)total_compute_cost);
 
-  if ((new_comm_cost < current_comm_cost) &&
-      (abs(leavingPartitionShare - idealPartitionShare) <= compute_margin) &&
-      (abs(joiningPartitionShare - idealPartitionShare) <= compute_margin)) {
+  if (new_comm_cost < current_comm_cost) {
     VLOG(0) << " Move_affected: "
             << " leavingPartitionShare: " << leavingPartitionShare
             << " joiningPartitionShare: " << joiningPartitionShare
             << " idealPartitionShare: " << idealPartitionShare
             << " new_comm_cost: " << new_comm_cost
             << " current_comm_cost: " << current_comm_cost << "\n";
+  }
+
+  if ((new_comm_cost < current_comm_cost) &&
+      (abs(leavingPartitionShare - idealPartitionShare) <= compute_margin) &&
+      (abs(joiningPartitionShare - idealPartitionShare) <= compute_margin)) {
     return true;
   } else {
     return false;
@@ -357,6 +360,12 @@ int64 PlacementOptimizer::ComputePerDeviceComputeCost(
     total_compute_cost += current_cost_node->compute_cost;
   }
 
+  for (auto device : devices) {
+    VLOG(0) << "device: " << device
+            << " compute_costs: " << compute_costs[device] << "\n";
+  }
+
+  VLOG(0) << "total_compute_cost: " << total_compute_cost << "\n";
   return total_compute_cost;
 }
 
