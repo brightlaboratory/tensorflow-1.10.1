@@ -348,10 +348,12 @@ int64 PlacementOptimizer::ComputePerDeviceComputeCost(
     compute_costs[device] = 0;
   }
 
+  int64 total_compute_cost = 0;
+
   for (auto i : node_to_commcost) {
     NodeDef* node = i.first;
     struct NodeCommCost* current_cost_node = i.second;
-    compute_costs[device] += current_cost_node->compute_cost;
+    compute_costs[node->device()] += current_cost_node->compute_cost;
     total_compute_cost += current_cost_node->compute_cost;
   }
 
