@@ -261,8 +261,7 @@ int PlacementOptimizer::ReassignNodes(
   std::unordered_map<string, int64> compute_costs;
   int64 total_compute_cost =
       ComputePerDeviceComputeCost(compute_costs, node_to_commcost, devices);
-  double idealPartitionShare =
-      ((double)total_compute_cost) / ((double)devices.size());
+  double idealPartitionShare = 1.0 / ((double)devices.size());
 
   for (auto i : node_to_commcost) {
     NodeDef* node = i.first;
