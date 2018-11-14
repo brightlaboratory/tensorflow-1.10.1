@@ -90,6 +90,15 @@ class PlacementOptimizer : public GraphOptimizer {
 
   void FreeLocallyAllocatedMemory(
       std::unordered_map<NodeDef*, struct NodeCommCost*>& node_to_commcost);
+
+  int64 ComputePerDeviceComputeCost(
+      std::unordered_map<string, int64>& compute_costs,
+      std::unordered_map<NodeDef*, struct NodeCommCost*>& node_to_commcost);
+
+  bool IsBeneficialToMoveNode(double compute_margin, double idealPartitionShare,
+                              std::unordered_map<string, int64>& compute_costs,
+                              int64 current_compute_cost, int64 new_comm_cost,
+                              int64 current_comm_cost);
 };
 
 }  // end namespace grappler

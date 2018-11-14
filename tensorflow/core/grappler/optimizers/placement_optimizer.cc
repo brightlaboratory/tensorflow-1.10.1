@@ -1,6 +1,7 @@
 
 #include "tensorflow/core/grappler/optimizers/placement_optimizer.h"
 
+#include <cmath>
 #include <set>
 #include "tensorflow/cc/ops/standard_ops.h"
 #include "tensorflow/core/framework/cost_graph.pb.h"
@@ -227,7 +228,8 @@ void PlacementOptimizer::MinCutPlacement(Cluster* cluster,
 
     ComputeNodeCommCosts(cost_graph, pinned_devices, whitelisted_ops,
                          node_to_commcost, name_to_cost, name_to_node);
-    PartitionTheGraph(cluster, node_to_commcost, name_to_cost, name_to_node);
+    PartitionTheGraph(cluster, node_to_commcost, name_to_cost, name_to_node,
+                      devices);
     FreeLocallyAllocatedMemory(node_to_commcost);
     *optimized_graph->mutable_versions() = graph_def.versions();
   }
@@ -237,8 +239,7 @@ void PlacementOptimizer::PartitionTheGraph(
     Cluster* cluster,
     std::unordered_map<NodeDef*, struct NodeCommCost*>& node_to_commcost,
     std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
-    std::unordered_map<string, NodeDef*>& name_to_node) {
-  set<string> devices = GetDevices(cluster);
+    std::unordered_map<string, NodeDef*>& name_to_node, set<string>& devices) {
   VLOG(0) << "Entering PartitionTheGraph\n";
   int numReassigned =
       ReassignNodes(devices, node_to_commcost, name_to_cost, name_to_node);
@@ -252,11 +253,21 @@ int PlacementOptimizer::ReassignNodes(
     std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
     std::unordered_map<string, NodeDef*>& name_to_node) {
   VLOG(0) << "Entering ReassignNodes\n";
+
+  // Parameters
+  double compute_margin = 0.2;
+
   int numReassigned = 0;
+  std::unordered_map<string, int64> compute_costs;
+  int64 total_compute_cost =
+      ComputePerDeviceComputeCost(compute_costs, node_to_commcost);
+  double idealPartitionShare =
+      ((double)total_compute_cost) / ((double)devices.size());
 
   for (auto i : node_to_commcost) {
     NodeDef* node = i.first;
     struct NodeCommCost* current_cost_node = i.second;
+    int64 current_compute_cost = current_cost_node->compute_cost;
 
     string orig_device = node->device();
     string new_device = orig_device;
@@ -270,7 +281,9 @@ int PlacementOptimizer::ReassignNodes(
         node->set_device(orig_device);
         int64 new_comm_cost = node_commcost->ec - node_commcost->ic;
 
-        if (new_comm_cost < current_comm_cost) {
+        if (IsBeneficialToMoveNode(compute_margin, idealPartitionShare,
+                                   compute_costs, current_compute_cost,
+                                   new_comm_cost, current_comm_cost)) {
           if (current_cost_node) {
             free(current_cost_node);
           }
@@ -278,6 +291,8 @@ int PlacementOptimizer::ReassignNodes(
           current_cost_node = node_commcost;
           new_device = device;
           node_to_commcost[node] = node_commcost;
+          compute_costs[device] += current_compute_cost;
+          compute_costs[orig_device] -= current_compute_cost;
         } else {
           free(node_commcost);
         }
@@ -295,6 +310,50 @@ int PlacementOptimizer::ReassignNodes(
 
   VLOG(0) << "Returning from ReassignNodes\n";
   return numReassigned;
+}
+
+bool PlacementOptimizer::IsBeneficialToMoveNode(
+    double compute_margin, double idealPartitionShare,
+    std::unordered_map<string, int64>& compute_costs,
+    int64 current_compute_cost, int64 new_comm_cost, int64 current_comm_cost) {
+  double leavingPartitionShare =
+      ((double)compute_costs[orig_device] - current_compute_cost) /
+      ((double)total_compute_cost);
+
+  double joiningPartitionShare =
+      ((double)compute_costs[device] + current_compute_cost) /
+      ((double)total_compute_cost);
+
+  if ((new_comm_cost < current_comm_cost) &&
+      (abs(leavingPartitionShare - idealPartitionShare) <= compute_margin) &&
+      (abs(joiningPartitionShare - idealPartitionShare) <= compute_margin)) {
+    VLOG(0) << " Move_affected: "
+            << " leavingPartitionShare: " << leavingPartitionShare
+            << " joiningPartitionShare: " << joiningPartitionShare
+            << " idealPartitionShare: " << idealPartitionShare
+            << " new_comm_cost: " << new_comm_cost
+            << " current_comm_cost: " << current_comm_cost << "\n";
+    return true;
+  } else {
+    return false;
+  }
+}
+
+int64 PlacementOptimizer::ComputePerDeviceComputeCost(
+    std::unordered_map<string, int64>& compute_costs,
+    std::unordered_map<NodeDef*, struct NodeCommCost*>& node_to_commcost) {
+  for (auto device : devices) {
+    compute_costs[device] = 0;
+  }
+
+  for (auto i : node_to_commcost) {
+    NodeDef* node = i.first;
+    struct NodeCommCost* current_cost_node = i.second;
+    compute_costs[device] += current_cost_node->compute_cost;
+    total_compute_cost += current_cost_node->compute_cost;
+  }
+
+  return total_compute_cost;
 }
 
 void PlacementOptimizer::ComputeNodeCommCosts(
