@@ -260,7 +260,7 @@ int PlacementOptimizer::ReassignNodes(
   int numReassigned = 0;
   std::unordered_map<string, int64> compute_costs;
   int64 total_compute_cost =
-      ComputePerDeviceComputeCost(compute_costs, node_to_commcost);
+      ComputePerDeviceComputeCost(compute_costs, node_to_commcost, devices);
   double idealPartitionShare =
       ((double)total_compute_cost) / ((double)devices.size());
 
@@ -272,7 +272,6 @@ int PlacementOptimizer::ReassignNodes(
     string orig_device = node->device();
     string new_device = orig_device;
     int64 current_comm_cost = current_cost_node->ec - current_cost_node->ic;
-    struct NodeCommCost* new_comm_cost = NULL;
     for (auto device : devices) {
       if (device != orig_device) {
         node->set_device(device);
@@ -283,7 +282,8 @@ int PlacementOptimizer::ReassignNodes(
 
         if (IsBeneficialToMoveNode(compute_margin, idealPartitionShare,
                                    compute_costs, current_compute_cost,
-                                   new_comm_cost, current_comm_cost)) {
+                                   new_comm_cost, current_comm_cost,
+                                   orig_device, device, total_compute_cost)) {
           if (current_cost_node) {
             free(current_cost_node);
           }
@@ -315,7 +315,8 @@ int PlacementOptimizer::ReassignNodes(
 bool PlacementOptimizer::IsBeneficialToMoveNode(
     double compute_margin, double idealPartitionShare,
     std::unordered_map<string, int64>& compute_costs,
-    int64 current_compute_cost, int64 new_comm_cost, int64 current_comm_cost) {
+    int64 current_compute_cost, int64 new_comm_cost, int64 current_comm_cost,
+    string orig_device, string device, int64 total_compute_cost) {
   double leavingPartitionShare =
       ((double)compute_costs[orig_device] - current_compute_cost) /
       ((double)total_compute_cost);
@@ -341,7 +342,8 @@ bool PlacementOptimizer::IsBeneficialToMoveNode(
 
 int64 PlacementOptimizer::ComputePerDeviceComputeCost(
     std::unordered_map<string, int64>& compute_costs,
-    std::unordered_map<NodeDef*, struct NodeCommCost*>& node_to_commcost) {
+    std::unordered_map<NodeDef*, struct NodeCommCost*>& node_to_commcost,
+    set<string>& devices) {
   for (auto device : devices) {
     compute_costs[device] = 0;
   }

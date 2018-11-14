@@ -75,7 +75,7 @@ class PlacementOptimizer : public GraphOptimizer {
       Cluster* cluster,
       std::unordered_map<NodeDef*, struct NodeCommCost*>& node_to_commcost,
       std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
-      std::unordered_map<string, NodeDef*>& name_to_node);
+      std::unordered_map<string, NodeDef*>& name_to_node, set<string>& devices);
 
   int ReassignNodes(
       set<string>& devices,
@@ -93,12 +93,14 @@ class PlacementOptimizer : public GraphOptimizer {
 
   int64 ComputePerDeviceComputeCost(
       std::unordered_map<string, int64>& compute_costs,
-      std::unordered_map<NodeDef*, struct NodeCommCost*>& node_to_commcost);
+      std::unordered_map<NodeDef*, struct NodeCommCost*>& node_to_commcost,
+      set<string>& devices);
 
   bool IsBeneficialToMoveNode(double compute_margin, double idealPartitionShare,
                               std::unordered_map<string, int64>& compute_costs,
                               int64 current_compute_cost, int64 new_comm_cost,
-                              int64 current_comm_cost);
+                              int64 current_comm_cost, string orig_device,
+                              string device, int64 total_compute_cost);
 };
 
 }  // end namespace grappler
