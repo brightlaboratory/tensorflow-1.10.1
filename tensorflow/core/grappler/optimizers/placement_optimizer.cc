@@ -334,8 +334,8 @@ bool PlacementOptimizer::IsBeneficialToMoveNode(
   }
 
   if ((new_comm_cost < current_comm_cost) &&
-      (abs(leavingPartitionShare - idealPartitionShare) <= compute_margin) &&
-      (abs(joiningPartitionShare - idealPartitionShare) <= compute_margin)) {
+      ((idealPartitionShare - leavingPartitionShare) <= compute_margin) &&
+      ((joiningPartitionShare - idealPartitionShare) <= compute_margin)) {
     return true;
   } else {
     return false;
