@@ -17,6 +17,11 @@ struct NodeCommCost {
   NodeCommCost() : compute_cost(0), ec(0), ic(0) {}
 };
 
+struct PlacementOptimizerOptions {
+  bool usePlacementOptimizer;
+  PlacementOptimizerOptions() : usePlacementOptimizer(true) {}
+};
+
 // Remap TensorFlow subgraphs onto alternative operations or collection of
 // operations to make the overall graph more efficient.
 class PlacementOptimizer : public GraphOptimizer {
@@ -101,6 +106,8 @@ class PlacementOptimizer : public GraphOptimizer {
                               int64 current_compute_cost, int64 new_comm_cost,
                               int64 current_comm_cost, string orig_device,
                               string device, int64 total_compute_cost);
+
+  void ParseOptions(struct PlacementOptimizerOptions& options);
 };
 
 }  // end namespace grappler

@@ -1,6 +1,7 @@
 
 #include "tensorflow/core/grappler/optimizers/placement_optimizer.h"
 
+#include <string.h>
 #include <cmath>
 #include <set>
 #include "tensorflow/cc/ops/standard_ops.h"
@@ -10,7 +11,6 @@
 #include "tensorflow/core/grappler/clusters/virtual_cluster.h"
 #include "tensorflow/core/grappler/costs/analytical_cost_estimator.h"
 #include "tensorflow/core/grappler/utils.h"
-
 using namespace std;
 
 namespace tensorflow {
@@ -44,7 +44,10 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
 
   VLOG(0) << "summary.execution_time: " << summary.execution_time << "\n";
 
-  if (summary.execution_time >= Costs::Duration(MIN_EXECUTION_TIME)) {
+  struct PlacementOptimizerOptions options;
+  ParseOptions(options);
+  if (summary.execution_time >= Costs::Duration(MIN_EXECUTION_TIME) &&
+      options.usePlacementOptimizer) {
     VLOG(0) << "Invoking CreateDefaultPlacement\n";
     MinCutPlacement(cluster, item.graph, cost_graph, optimized_graph);
   } else {
@@ -54,6 +57,16 @@ Status PlacementOptimizer::Optimize(Cluster* cluster, const GrapplerItem& item,
 
   // PrintCostStats(item, cost_graph);
   return Status::OK();
+}
+
+void PlacementOptimizer::ParseOptions(
+    struct PlacementOptimizerOptions& options) {
+  const char* env = getenv("TF_PLACEMENT_OPTIMIZER");
+  if (strcmp(env, "OFF") == 0) {
+    options.usePlacementOptimizer = false;
+  }
+
+  VLOG(0) << "usePlacementOptimizer: " << options.usePlacementOptimizer << "\n";
 }
 
 void PlacementOptimizer::CreateDefaultPlacement(Cluster* cluster,
