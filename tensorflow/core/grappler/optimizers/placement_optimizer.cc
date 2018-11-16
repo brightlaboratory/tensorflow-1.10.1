@@ -305,7 +305,7 @@ int PlacementOptimizer::ReassignNodes(
           new_device = device;
           min_comm_cost = new_comm_cost;
         } else {
-          free(node_commcost);
+          free(new_cost_node);
         }
       }
     }
