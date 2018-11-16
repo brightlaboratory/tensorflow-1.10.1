@@ -279,32 +279,31 @@ int PlacementOptimizer::ReassignNodes(
   for (auto i : node_to_commcost) {
     NodeDef* node = i.first;
     struct NodeCommCost* current_cost_node = i.second;
+    struct NodeCommCost* min_cost_node = NULL;
     int64 current_compute_cost = current_cost_node->compute_cost;
 
     string orig_device = node->device();
     string new_device = orig_device;
-    int64 current_comm_cost = current_cost_node->ec - current_cost_node->ic;
+    int64 min_comm_cost = current_cost_node->ec - current_cost_node->ic;
     for (auto device : devices) {
       if (device != orig_device) {
         node->set_device(device);
-        struct NodeCommCost* node_commcost =
+        struct NodeCommCost* new_cost_node =
             ComputeNodeCommCost(node, name_to_cost, name_to_node);
         node->set_device(orig_device);
         int64 new_comm_cost = node_commcost->ec - node_commcost->ic;
 
         if (IsBeneficialToMoveNode(compute_margin, idealPartitionShare,
                                    compute_costs, current_compute_cost,
-                                   new_comm_cost, current_comm_cost,
-                                   orig_device, device, total_compute_cost)) {
-          if (current_cost_node) {
-            free(current_cost_node);
+                                   new_comm_cost, min_comm_cost, orig_device,
+                                   device, total_compute_cost)) {
+          if (min_cost_node) {
+            free(min_cost_node);
           }
 
-          current_cost_node = node_commcost;
+          min_cost_node = new_cost_node;
           new_device = device;
-          node_to_commcost[node] = node_commcost;
-          compute_costs[device] += current_compute_cost;
-          compute_costs[orig_device] -= current_compute_cost;
+          min_comm_cost = new_comm_cost;
         } else {
           free(node_commcost);
         }
@@ -317,6 +316,10 @@ int PlacementOptimizer::ReassignNodes(
 
       node->set_device(new_device);
       numReassigned++;
+      free(current_cost_node);
+      node_to_commcost[node] = min_cost_node;
+      compute_costs[new_device] += current_compute_cost;
+      compute_costs[orig_device] -= current_compute_cost;
     }
   }
 
