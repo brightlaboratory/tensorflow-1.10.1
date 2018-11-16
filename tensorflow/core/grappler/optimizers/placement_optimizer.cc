@@ -291,7 +291,7 @@ int PlacementOptimizer::ReassignNodes(
         struct NodeCommCost* new_cost_node =
             ComputeNodeCommCost(node, name_to_cost, name_to_node);
         node->set_device(orig_device);
-        int64 new_comm_cost = node_commcost->ec - node_commcost->ic;
+        int64 new_comm_cost = new_cost_node->ec - new_cost_node->ic;
 
         if (IsBeneficialToMoveNode(compute_margin, idealPartitionShare,
                                    compute_costs, current_compute_cost,
