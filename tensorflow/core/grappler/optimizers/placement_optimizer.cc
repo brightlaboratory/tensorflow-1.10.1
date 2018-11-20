@@ -256,7 +256,11 @@ void PlacementOptimizer::PartitionTheGraph(
   VLOG(0) << "Entering PartitionTheGraph\n";
   int numReassigned =
       ReassignNodes(devices, node_to_commcost, name_to_cost, name_to_node);
-  VLOG(0) << "numReassigned: " << numReassigned << "\n";
+  double fractionReassigned =
+      ((double)numReassigned / (double)node_to_commcost.size());
+  VLOG(0) << "numReassigned: " << numReassigned << " out of "
+          << node_to_commcost.size()
+          << " candidates. Fraction: " << fractionReassigned << " \n ";
   VLOG(0) << "Returning from PartitionTheGraph\n";
 }
 
