@@ -1,6 +1,7 @@
 
 #include "tensorflow/core/grappler/optimizers/placement_optimizer.h"
 
+#include <cstring.h>
 #include <string.h>
 #include <cmath>
 #include <set>
@@ -242,7 +243,7 @@ void PlacementOptimizer::MinCutPlacement(Cluster* cluster,
     ComputeNodeCommCosts(cost_graph, pinned_devices, whitelisted_ops,
                          node_to_commcost, name_to_cost, name_to_node);
     PartitionTheGraph(cluster, node_to_commcost, name_to_cost, name_to_node,
-                      devices);
+                      devices, pinned_devices);
     FreeLocallyAllocatedMemory(node_to_commcost);
     *optimized_graph->mutable_versions() = graph_def.versions();
   }
@@ -252,15 +253,33 @@ void PlacementOptimizer::PartitionTheGraph(
     Cluster* cluster,
     std::unordered_map<NodeDef*, struct NodeCommCost*>& node_to_commcost,
     std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
-    std::unordered_map<string, NodeDef*>& name_to_node, set<string>& devices) {
+    std::unordered_map<string, NodeDef*>& name_to_node, set<string>& devices,
+    set<string>& pinned_devices) {
   VLOG(0) << "Entering PartitionTheGraph\n";
-  int numReassigned =
-      ReassignNodes(devices, node_to_commcost, name_to_cost, name_to_node);
-  double fractionReassigned =
-      ((double)numReassigned / (double)node_to_commcost.size());
-  VLOG(0) << "numReassigned: " << numReassigned << " out of "
-          << node_to_commcost.size()
-          << " candidates. Fraction: " << fractionReassigned << " \n ";
+
+  const char* env = getenv("TF_PLACEMENT_OPTIMIZER_MAX_ITERS");
+  int maxIters = 5;
+  if (strlen(env) > 0) {
+    int iters = atoi(env);
+    if (iters > 0) {
+      maxIters = iters;
+    }
+  }
+
+  int numReassigned;
+  int iter = 0;
+
+  do {
+    numReassigned = ReassignNodes(devices, node_to_commcost, name_to_cost,
+                                  name_to_node, pinned_devices);
+    double fractionReassigned =
+        ((double)numReassigned / (double)node_to_commcost.size());
+    VLOG(0) << "numReassigned: " << numReassigned << " out of "
+            << node_to_commcost.size()
+            << " candidates. Fraction: " << fractionReassigned << " \n ";
+    iter++;
+  } while (numReassigned > 0 && iter < maxIters);
+
   VLOG(0) << "Returning from PartitionTheGraph\n";
 }
 
@@ -268,7 +287,14 @@ int PlacementOptimizer::ReassignNodes(
     set<string>& devices,
     std::unordered_map<NodeDef*, struct NodeCommCost*>& node_to_commcost,
     std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
-    std::unordered_map<string, NodeDef*>& name_to_node) {
+    std::unordered_map<string, NodeDef*>& name_to_node,
+    set<string>& pinned_devices) {
+  bool excludeCPU = false;
+  const char* env = getenv("TF_PLACEMENT_OPTIMIZER_EXCLUDE_CPU");
+  if (strcmp(env, "TRUE") == 0) {
+    excludeCPU = true;
+  }
+
   VLOG(0) << "Entering ReassignNodes\n";
 
   // Parameters
@@ -291,6 +317,12 @@ int PlacementOptimizer::ReassignNodes(
     int64 min_comm_cost = current_cost_node->ec - current_cost_node->ic;
     for (auto device : devices) {
       if (device != orig_device) {
+        if (excludeCPU) {
+          if (pinned_devices.find(device) != pinned_devices.end()) {
+            continue;
+          }
+        }
+
         node->set_device(device);
         struct NodeCommCost* new_cost_node =
             ComputeNodeCommCost(node, name_to_cost, name_to_node);
@@ -344,18 +376,26 @@ bool PlacementOptimizer::IsBeneficialToMoveNode(
       ((double)compute_costs[device] + current_compute_cost) /
       ((double)total_compute_cost);
 
-  if (new_comm_cost < current_comm_cost) {
-    VLOG(0) << " Move_affected: "
-            << " leavingPartitionShare: " << leavingPartitionShare
-            << " joiningPartitionShare: " << joiningPartitionShare
-            << " idealPartitionShare: " << idealPartitionShare
-            << " new_comm_cost: " << new_comm_cost
-            << " current_comm_cost: " << current_comm_cost << "\n";
+  const char* env = getenv("TF_PLACEMENT_OPTIMIZER_LOAD_BALANCE");
+  bool considerLoadBalance = false;
+  if (strcmp(env, "TRUE") == 0) {
+    considerLoadBalance = true;
   }
 
   if ((new_comm_cost < current_comm_cost) &&
       ((idealPartitionShare - leavingPartitionShare) <= compute_margin) &&
       ((joiningPartitionShare - idealPartitionShare) <= compute_margin)) {
+    // VLOG(0) << " Move_affected: "
+    //        << " leavingPartitionShare: " << leavingPartitionShare
+    //        << " joiningPartitionShare: " << joiningPartitionShare
+    //        << " idealPartitionShare: " << idealPartitionShare
+    //        << " new_comm_cost: " << new_comm_cost
+    //        << " current_comm_cost: " << current_comm_cost << "\n";
+    return true;
+  } else if (considerLoadBalance &&
+             leavingPartitionShare >= idealPartitionShare &&
+             joiningPartitionShare <= idealPartitionShare) {
+    VLOG(0) << "Reassignment done for load balance.\n";
     return true;
   } else {
     return false;
