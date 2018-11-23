@@ -455,7 +455,7 @@ void PlacementOptimizer::CreateInitialPartition(
   }
 
   int strategyCode = 0;
-  if (strmp(strategy, "RANDOM") == 0) {
+  if (strcmp(strategy, "RANDOM") == 0) {
     VLOG(0) << "Random initial partition\n";
     strategyCode = 1;
   } else {
