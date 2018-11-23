@@ -445,7 +445,7 @@ void PlacementOptimizer::CreateInitialPartition(
 
   for (auto device : devices) {
     if (pinned_devices.find(device) == pinned_devices.end()) {
-      GPUDevices.insert(device);
+      GPUDevices.push_back(device);
     }
   }
 
