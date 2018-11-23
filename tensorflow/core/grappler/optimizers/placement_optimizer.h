@@ -116,7 +116,8 @@ class PlacementOptimizer : public GraphOptimizer {
       set<string>& whitelisted_ops,
       std::unordered_map<NodeDef*, struct NodeCommCost*>& node_to_commcost,
       std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
-      std::unordered_map<string, NodeDef*>& name_to_node, set<string>& devices);
+      std::unordered_map<string, NodeDef*>& name_to_node, set<string>& devices,
+      const char* strategy);
 };
 
 }  // end namespace grappler

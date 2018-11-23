@@ -244,7 +244,7 @@ void PlacementOptimizer::MinCutPlacement(Cluster* cluster,
       VLOG(0) << "Calling CreateInitialPartition\n";
       CreateInitialPartition(cost_graph, pinned_devices, whitelisted_ops,
                              node_to_commcost, name_to_cost, name_to_node,
-                             devices);
+                             devices, env);
     }
 
     ComputeNodeCommCosts(cost_graph, pinned_devices, whitelisted_ops,
@@ -440,7 +440,8 @@ void PlacementOptimizer::CreateInitialPartition(
     set<string>& whitelisted_ops,
     std::unordered_map<NodeDef*, struct NodeCommCost*>& node_to_commcost,
     std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
-    std::unordered_map<string, NodeDef*>& name_to_node, set<string>& devices) {
+    std::unordered_map<string, NodeDef*>& name_to_node, set<string>& devices,
+    const char* strategy) {
   vector<string> GPUDevices;
 
   for (auto device : devices) {
@@ -453,13 +454,56 @@ void PlacementOptimizer::CreateInitialPartition(
     return;
   }
 
+  int strategyCode = 0;
+  if (strmp(strategy, "RANDOM") == 0) {
+    VLOG(0) << "Random initial partition\n";
+    strategyCode = 1;
+  } else {
+    VLOG(0) << "Block initial partition\n";
+    strategyCode = 0;
+  }
+
   srand(1);
   int numGPUDevices = GPUDevices.size();
-  for (auto i : name_to_node) {
-    NodeDef* node = i.second;
-    if (IsEligibleForRelocation(node, pinned_devices, whitelisted_ops)) {
-      if (pinned_devices.find(node->device()) == pinned_devices.end()) {
-        node->set_device(GPUDevices.at(rand() % numGPUDevices));
+
+  if (strategyCode == 1) {
+    for (auto i : name_to_node) {
+      NodeDef* node = i.second;
+      if (IsEligibleForRelocation(node, pinned_devices, whitelisted_ops)) {
+        if (pinned_devices.find(node->device()) == pinned_devices.end()) {
+          node->set_device(GPUDevices.at(rand() % numGPUDevices));
+        }
+      }
+    }
+  } else {
+    int numEligibleNodes = 0;
+    for (auto i : name_to_node) {
+      NodeDef* node = i.second;
+      if (IsEligibleForRelocation(node, pinned_devices, whitelisted_ops)) {
+        if (pinned_devices.find(node->device()) == pinned_devices.end()) {
+          numEligibleNodes++;
+        }
+      }
+    }
+
+    int numNodesPerGPUDevice =
+        ((double)numEligibleNodes) / ((double)numGPUDevices);
+
+    int currentIndex = 0;
+    int numNodes = 0;
+    for (auto i : name_to_node) {
+      NodeDef* node = i.second;
+      if (IsEligibleForRelocation(node, pinned_devices, whitelisted_ops)) {
+        if (pinned_devices.find(node->device()) == pinned_devices.end()) {
+          node->set_device(GPUDevices.at(currentIndex));
+          numNodes++;
+
+          if (numNodes == numNodesPerGPUDevice &&
+              numNodes < (numNodesPerGPUDevice - 1)) {
+            currentIndex++;
+            numNodes = 0;
+          }
+        }
       }
     }
   }
