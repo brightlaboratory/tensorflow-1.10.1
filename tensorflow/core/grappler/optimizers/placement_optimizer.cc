@@ -520,9 +520,10 @@ bool PlacementOptimizer::IsEligibleForRelocation(const NodeDef* node,
   OpRegistry::Global()->LookUpOpDef(node->op(), &op_def);
 
   // TODO: Think about if we need to consider CPU mapped adj_node
+  // TODO: Think about whether node->device() previously needs to have been set.
   if (op_def != nullptr && !op_def->is_stateful() &&
-      (whitelisted_ops.find(node->op()) != whitelisted_ops.end()) &&
-      !node->device().empty() /* &&
+      (whitelisted_ops.find(node->op()) != whitelisted_ops.end()) /* &&
+      !node->device().empty()  &&
       (pinned_devices.find(node->device()) == pinned_devices.end()) */) {
     return true;
   } else {
