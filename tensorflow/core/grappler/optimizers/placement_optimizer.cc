@@ -239,6 +239,14 @@ void PlacementOptimizer::MinCutPlacement(Cluster* cluster,
     std::unordered_map<NodeDef*, struct NodeCommCost*> node_to_commcost;
     std::unordered_map<string, const CostGraphDef::Node*> name_to_cost;
 
+    const char* env = getenv("TF_PLACEMENT_OPTIMIZER_INITIAL_PARTITION");
+    if (strlen(env) > 0) {
+      VLOG(0) << "Calling CreateInitialPartition\n";
+      CreateInitialPartition(cost_graph, pinned_devices, whitelisted_ops,
+                             node_to_commcost, name_to_cost, name_to_node,
+                             devices);
+    }
+
     ComputeNodeCommCosts(cost_graph, pinned_devices, whitelisted_ops,
                          node_to_commcost, name_to_cost, name_to_node);
     PartitionTheGraph(cluster, node_to_commcost, name_to_cost, name_to_node,
@@ -425,6 +433,36 @@ int64 PlacementOptimizer::ComputePerDeviceComputeCost(
 
   VLOG(0) << "total_compute_cost: " << total_compute_cost << "\n";
   return total_compute_cost;
+}
+
+void PlacementOptimizer::CreateInitialPartition(
+    CostGraphDef& cost_graph, set<string>& pinned_devices,
+    set<string>& whitelisted_ops,
+    std::unordered_map<NodeDef*, struct NodeCommCost*>& node_to_commcost,
+    std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
+    std::unordered_map<string, NodeDef*>& name_to_node, set<string>& devices) {
+  vector<string> GPUDevices;
+
+  for (auto device : devices) {
+    if (pinned_devices.find(device) == pinned_devices.end()) {
+      GPUDevices.insert(device);
+    }
+  }
+
+  if (GPUDevices.size() == 0) {
+    return;
+  }
+
+  srand(1);
+  int numGPUDevices = GPUDevices.size();
+  for (auto i : name_to_node) {
+    NodeDef* node = i.second;
+    if (IsEligibleForRelocation(node, pinned_devices, whitelisted_ops)) {
+      if (pinned_devices.find(node->device()) == pinned_devices.end()) {
+        node->set_device(GPUDevices.at(rand() % numGPUDevices));
+      }
+    }
+  }
 }
 
 void PlacementOptimizer::ComputeNodeCommCosts(
