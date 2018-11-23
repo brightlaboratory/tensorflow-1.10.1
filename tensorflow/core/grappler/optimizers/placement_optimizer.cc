@@ -1,7 +1,6 @@
 
 #include "tensorflow/core/grappler/optimizers/placement_optimizer.h"
 
-#include <cstring.h>
 #include <string.h>
 #include <cmath>
 #include <set>
