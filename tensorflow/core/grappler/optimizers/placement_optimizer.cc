@@ -269,7 +269,7 @@ void PlacementOptimizer::ParseForDevices(const char* env,
   char str[strlen(env) + 1];
   strcpy(str, env);
   char* separator = ";";
-  char* device = strtok(env, separator);
+  char* device = strtok(str, separator);
   while (device) {
     devices.insert(string(device));
     device = strtok(NULL, separator);
