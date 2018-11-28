@@ -266,6 +266,8 @@ void PlacementOptimizer::MinCutPlacement(Cluster* cluster,
 
 void PlacementOptimizer::ParseForDevices(const char* env,
                                          set<string>& devices) {
+  char str[strlen(env) + 1];
+  strcpy(str, env);
   char* separator = ";";
   char* device = strtok(env, separator);
   while (device) {
