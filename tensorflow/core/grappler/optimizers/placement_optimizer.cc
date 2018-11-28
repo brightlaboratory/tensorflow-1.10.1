@@ -219,7 +219,15 @@ void PlacementOptimizer::MinCutPlacement(Cluster* cluster,
                                          const GraphDef& graph_def,
                                          CostGraphDef& cost_graph,
                                          GraphDef* optimized_graph) {
-  set<string> devices = GetMappedDevices(graph_def);
+  set<string> devices;
+
+  const char* env = getenv("TF_PLACEMENT_OPTIMIZER_DEVICES");
+  if (strlen(env) > 0) {
+    ParseForDevices(env, devices);
+  } else {
+    devices = GetMappedDevices(graph_def);
+  }
+
   set<string> pinned_devices = GetPinnedDeviceStrings(devices);
   set<string> whitelisted_ops = GetWhitelistedOps();
   string default_device =
@@ -253,6 +261,21 @@ void PlacementOptimizer::MinCutPlacement(Cluster* cluster,
                       devices, pinned_devices);
     FreeLocallyAllocatedMemory(node_to_commcost);
     *optimized_graph->mutable_versions() = graph_def.versions();
+  }
+}
+
+void PlacementOptimizer::ParseForDevices(const char* env,
+                                         set<string>& devices) {
+  char* separator = ";";
+  char* device = strtok(env, separator);
+  while (device) {
+    devices.insert(string(device));
+    device = strtok(NULL, separator);
+  }
+
+  VLOG(0) << "Parsed_devices are the following: " << devices.size() << "\n";
+  for (auto device : devices) {
+    VLOG(0) << "device: " << device << "\n";
   }
 }
 

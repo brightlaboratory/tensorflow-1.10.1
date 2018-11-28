@@ -118,6 +118,8 @@ class PlacementOptimizer : public GraphOptimizer {
       std::unordered_map<string, const CostGraphDef::Node*>& name_to_cost,
       std::unordered_map<string, NodeDef*>& name_to_node, set<string>& devices,
       const char* strategy);
+
+  void ParseForDevices(const char* env, set<string>& devices);
 };
 
 }  // end namespace grappler
